@@ -3,6 +3,7 @@ kotlin = "2.3.10"
 ktor = "3.1.1"
 logback = "1.5.18"
 xodus = "2.0.1"
+jbcrypt = "0.4"
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -21,3 +22,4 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 xodus-open-api = { module = "org.jetbrains.xodus:xodus-openAPI", version.ref = "xodus" }
 xodus-entity-store = { module = "org.jetbrains.xodus:xodus-entity-store", version.ref = "xodus" }
 xodus-vfs = { module = "org.jetbrains.xodus:xodus-vfs", version.ref = "xodus" }
+jbcrypt = { module = "org.mindrot:jbcrypt", version.ref = "jbcrypt" }

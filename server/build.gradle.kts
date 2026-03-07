@@ -28,4 +28,5 @@ dependencies {
     implementation(libs.logback.classic)
     implementation(libs.xodus.open.api)
     implementation(libs.xodus.entity.store)
+    implementation(libs.jbcrypt)
 }
