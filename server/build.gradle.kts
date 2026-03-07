@@ -1,0 +1,31 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ktor)
+    alias(libs.plugins.kotlin.serialization)
+}
+
+application {
+    mainClass.set("com.shorturl.ApplicationKt")
+    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=true")
+}
+
+kotlin {
+    jvmToolchain(24)
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.server.sessions)
+    implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.html.builder)
+    implementation(libs.ktor.serialization.json)
+    implementation(libs.logback.classic)
+    implementation(libs.xodus.open.api)
+    implementation(libs.xodus.entity.store)
+}
