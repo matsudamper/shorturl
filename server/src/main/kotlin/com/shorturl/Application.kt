@@ -65,6 +65,10 @@ fun Application.module(config: AppConfig = AppConfig()) {
             staticFiles("/admin", adminDir) {
                 default("index.html")
             }
+            val fontsDir = adminDir.resolve("fonts")
+            if (fontsDir.exists()) {
+                staticFiles("/fonts", fontsDir)
+            }
         }
 
         adminApiRoutes()

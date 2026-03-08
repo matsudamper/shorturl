@@ -1,6 +1,17 @@
 package com.shorturl.config
 
+import java.io.File
+
 private val DEV_SECRET = "shorturl-dev-secret-key-32bytes!!"
+
+private val ADMIN_DIST_CANDIDATES = listOf(
+    "./admin/build/dist/wasmJs/productionExecutable",    // IntelliJ（プロジェクトルートが作業ディレクトリ）
+    "../admin/build/dist/wasmJs/productionExecutable",   // Gradle server:run（server/が作業ディレクトリ）
+)
+
+private fun defaultAdminDist(): String =
+    ADMIN_DIST_CANDIDATES.firstOrNull { File(it).exists() }
+        ?: ADMIN_DIST_CANDIDATES.first()
 
 /**
  * @param port バインドポート
@@ -17,7 +28,7 @@ data class AppConfig(
     val dataDir: String = System.getenv("DATA_DIR") ?: "./.data",
     val sessionSecret: String = System.getenv("SESSION_SECRET") ?: DEV_SECRET,
     val geoipMmdb: String = System.getenv("GEOIP_MMDB") ?: "./GeoLite2-Country.mmdb",
-    val adminDist: String = System.getenv("ADMIN_DIST") ?: "./admin/build/dist/wasmJs/productionExecutable",
+    val adminDist: String = System.getenv("ADMIN_DIST") ?: defaultAdminDist(),
     val cookieSecure: Boolean = System.getenv("COOKIE_SECURE")?.toBooleanStrictOrNull() ?: false,
 ) {
     val isDevSecret: Boolean get() = sessionSecret == DEV_SECRET

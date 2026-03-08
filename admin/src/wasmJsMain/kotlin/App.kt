@@ -1,5 +1,7 @@
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontFamily
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -34,21 +36,43 @@ data class AnalyticsRoute(val urlId: String, val slug: String) : NavKey
 private val navConfig = SavedStateConfiguration {
     serializersModule = SerializersModule {
         polymorphic(NavKey::class) {
-            subclass(LoginRoute::class)
-            subclass(HashGeneratorRoute::class)
-            subclass(UrlListRoute::class)
-            subclass(UrlCreateRoute::class)
-            subclass(UrlEditRoute::class)
-            subclass(AnalyticsRoute::class)
+            subclass(LoginRoute::class, LoginRoute.serializer())
+            subclass(HashGeneratorRoute::class, HashGeneratorRoute.serializer())
+            subclass(UrlListRoute::class, UrlListRoute.serializer())
+            subclass(UrlCreateRoute::class, UrlCreateRoute.serializer())
+            subclass(UrlEditRoute::class, UrlEditRoute.serializer())
+            subclass(AnalyticsRoute::class, AnalyticsRoute.serializer())
         }
     }
+}
+
+private fun createTypography(fontFamily: FontFamily): Typography {
+    val base = Typography()
+    return Typography(
+        displayLarge = base.displayLarge.copy(fontFamily = fontFamily),
+        displayMedium = base.displayMedium.copy(fontFamily = fontFamily),
+        displaySmall = base.displaySmall.copy(fontFamily = fontFamily),
+        headlineLarge = base.headlineLarge.copy(fontFamily = fontFamily),
+        headlineMedium = base.headlineMedium.copy(fontFamily = fontFamily),
+        headlineSmall = base.headlineSmall.copy(fontFamily = fontFamily),
+        titleLarge = base.titleLarge.copy(fontFamily = fontFamily),
+        titleMedium = base.titleMedium.copy(fontFamily = fontFamily),
+        titleSmall = base.titleSmall.copy(fontFamily = fontFamily),
+        bodyLarge = base.bodyLarge.copy(fontFamily = fontFamily),
+        bodyMedium = base.bodyMedium.copy(fontFamily = fontFamily),
+        bodySmall = base.bodySmall.copy(fontFamily = fontFamily),
+        labelLarge = base.labelLarge.copy(fontFamily = fontFamily),
+        labelMedium = base.labelMedium.copy(fontFamily = fontFamily),
+        labelSmall = base.labelSmall.copy(fontFamily = fontFamily),
+    )
 }
 
 @Composable
 fun App() {
     val backStack = rememberNavBackStack(navConfig, LoginRoute)
+    val fontFamily = rememberNotoSansJpFontFamily()
 
-    MaterialTheme {
+    MaterialTheme(typography = createTypography(fontFamily)) {
         NavDisplay(
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },

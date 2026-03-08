@@ -1,5 +1,6 @@
 package com.shorturl
 
+import com.shorturl.config.AppConfig
 import com.shorturl.db.XodusDatabase
 import com.shorturl.model.*
 import com.shorturl.repository.UserRepository
@@ -37,11 +38,23 @@ class ApplicationTest {
     // ────────────────────────────────────────────
 
     @Test
-    fun `GET health returns OK`() = testApplication {
+    fun `GET healthz returns OK`() = testApplication {
         application { module() }
-        val res = client.get("/health")
+        val res = client.get("/healthz")
         assertEquals(HttpStatusCode.OK, res.status)
         assertEquals("OK", res.body<String>())
+    }
+
+    // ────────────────────────────────────────────
+    // 管理画面
+    // ────────────────────────────────────────────
+
+    @Test
+    fun `GET admin returns 200 with default adminDist`() = testApplication {
+        val adminDist = java.io.File("admin/build/dist/wasmJs/productionExecutable").absolutePath
+        application { module(AppConfig(adminDist = adminDist)) }
+        val res = client.get("/admin/")
+        assertEquals(HttpStatusCode.OK, res.status)
     }
 
     // ────────────────────────────────────────────

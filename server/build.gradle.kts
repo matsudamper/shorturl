@@ -17,6 +17,10 @@ repositories {
     mavenCentral()
 }
 
+tasks.named<Test>("test") {
+    workingDir = rootProject.projectDir
+}
+
 dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
