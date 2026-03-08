@@ -39,7 +39,7 @@ graalvmNative {
     }
 
     // GraalVM Reachability Metadata Repository を有効化
-    // logback / netty / jackson 等の人気ライブラリのリフレクション設定を自動取得
+    // logback / jackson 等の人気ライブラリのリフレクション設定を自動取得
     metadataRepository {
         enabled = true
     }
@@ -64,7 +64,7 @@ tasks.named<Test>("test") {
 
 dependencies {
     implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.sessions)
     implementation(libs.ktor.server.status.pages)

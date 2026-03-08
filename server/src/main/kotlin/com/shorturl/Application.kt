@@ -8,13 +8,15 @@ import com.shorturl.routes.redirectRoutes
 import com.shorturl.service.GeoIpService
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
-import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import io.ktor.server.sessions.serialization.*
+import kotlinx.serialization.json.*
 import java.io.File
 
 fun main() {
@@ -24,7 +26,7 @@ fun main() {
     XodusDatabase.init(config.dataDir)
     GeoIpService.init(config.geoipMmdb)
 
-    val server = embeddedServer(Netty, port = config.port, host = config.host) {
+    val server = embeddedServer(CIO, port = config.port, host = config.host) {
         module(config)
     }
     Runtime.getRuntime().addShutdownHook(Thread {
@@ -41,6 +43,7 @@ fun Application.module(config: AppConfig = AppConfig()) {
 
     install(Sessions) {
         cookie<UserSession>("user_session") {
+            serializer = KotlinxSessionSerializer(UserSession.serializer(), Json)
             cookie.httpOnly = true
             cookie.secure = config.cookieSecure
             cookie.extensions["SameSite"] = "Strict"
