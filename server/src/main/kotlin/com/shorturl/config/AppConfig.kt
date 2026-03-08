@@ -17,7 +17,7 @@ data class AppConfig(
     val dataDir: String = System.getenv("DATA_DIR") ?: "./.data",
     val sessionSecret: String = System.getenv("SESSION_SECRET") ?: DEV_SECRET,
     val geoipMmdb: String = System.getenv("GEOIP_MMDB") ?: "./GeoLite2-Country.mmdb",
-    val adminDist: String = System.getenv("ADMIN_DIST") ?: "./admin-dist",
+    val adminDist: String = System.getenv("ADMIN_DIST") ?: "./admin/build/dist/wasmJs/productionExecutable",
     val cookieSecure: Boolean = System.getenv("COOKIE_SECURE")?.toBooleanStrictOrNull() ?: false,
 ) {
     val isDevSecret: Boolean get() = sessionSecret == DEV_SECRET

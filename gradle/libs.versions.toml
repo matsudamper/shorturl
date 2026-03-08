@@ -6,7 +6,7 @@ xodus = "2.0.1"
 jbcrypt = "0.4"
 compose-multiplatform = "1.9.0"
 geoip2 = "4.2.0"
-navigation3 = "1.0.0-alpha01"
+navigation3 = "1.1.0-alpha03"
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -33,7 +33,7 @@ maxmind-geoip2 = { module = "com.maxmind.geoip2:geoip2", version.ref = "geoip2" 
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-json-mp = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
-navigation3-core = { module = "org.jetbrains.androidx.navigation3:navigation3-core", version.ref = "navigation3" }
 navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
