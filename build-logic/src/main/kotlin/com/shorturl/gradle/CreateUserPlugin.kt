@@ -14,7 +14,7 @@ class CreateUserPlugin : Plugin<Project> {
             dataDir.convention(
                 project.providers.gradleProperty("dataDir")
                     .orElse(project.providers.environmentVariable("DATA_DIR"))
-                    .orElse(project.rootProject.layout.projectDirectory.dir(".data").asFile.absolutePath)
+                    .orElse(project.rootProject.layout.projectDirectory.dir(".data/exodus").asFile.absolutePath)
             )
         }
     }

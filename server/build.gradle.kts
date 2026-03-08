@@ -19,6 +19,8 @@ kotlin {
 }
 
 graalvmNative {
+    toolchainDetection.set(true)
+
     // GraalVM Reachability Metadata Repository を有効化
     // logback / netty / jackson 等の人気ライブラリのリフレクション設定を自動取得
     metadataRepository {

@@ -10,7 +10,6 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
 import model.ShortenedUrl
 import ui.*
 
@@ -108,16 +107,15 @@ fun App() {
                 }
                 is UrlEditRoute -> NavEntry(key) {
                     UrlEditScreen(
-                        url = (key as UrlEditRoute).url,
+                        url = key.url,
                         onBack = { backStack.removeLastOrNull() },
                         onSaved = { backStack.removeLastOrNull() },
                     )
                 }
                 is AnalyticsRoute -> NavEntry(key) {
-                    val route = key as AnalyticsRoute
                     AnalyticsScreen(
-                        urlId = route.urlId,
-                        slug = route.slug,
+                        urlId = key.urlId,
+                        slug = key.slug,
                         onBack = { backStack.removeLastOrNull() },
                     )
                 }
