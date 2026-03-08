@@ -9,8 +9,8 @@
   - Compose Multiplatform (Wasm) 製の管理画面です。
 
 ## 前提条件
-- Java 21
-- `server` モジュールは Gradle Toolchain で `Java 21 + GraalVM` を要求します。
+- Java 24
+- `server` モジュールは Gradle Toolchain で `Java 24 + GraalVM` を要求します。
 
 ## 通常ビルド
 
@@ -40,7 +40,7 @@
 
 前提:
 
-- GraalVM JDK 21
+- GraalVM JDK 24（2026-03-08 時点では `24.0.2` 推奨）
 - Native Image が利用可能な状態であること
 - `native-image --version` が通ること
 

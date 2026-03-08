@@ -15,8 +15,8 @@
 
 ## Assumptions
 
-- `server` は Gradle Toolchain で `Java 21 + GraalVM` を要求している。
-- オフラインや制限付き環境では、Gradle の自動 Toolchain 解決に頼らず GraalVM JDK 21 を事前に用意する前提で考える。
+- `server` は Gradle Toolchain で `Java 24 + GraalVM` を要求している。
+- オフラインや制限付き環境では、Gradle の自動 Toolchain 解決に頼らず GraalVM JDK 24 を事前に用意する前提で考える。
 - 管理画面の既定配信先は `admin/build/dist/wasmJs/developExecutable/`。`ADMIN_DIST` を変えない限り、このパスを前提に動作確認する。
 
 ## Outputs

@@ -11,15 +11,32 @@ application {
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=true")
 }
 
-kotlin {
-    jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+val graalVmLanguageVersion = JavaLanguageVersion.of(24)
+
+java {
+    toolchain {
+        languageVersion = graalVmLanguageVersion
         vendor = JvmVendorSpec.GRAAL_VM
     }
 }
 
+kotlin {
+    jvmToolchain {
+        languageVersion = graalVmLanguageVersion
+        vendor = JvmVendorSpec.GRAAL_VM
+    }
+}
+
+val graalVmLauncher = javaToolchains.launcherFor {
+    languageVersion = graalVmLanguageVersion
+    vendor = JvmVendorSpec.GRAAL_VM
+}
+
 graalvmNative {
     toolchainDetection.set(true)
+    binaries.configureEach {
+        javaLauncher.set(graalVmLauncher)
+    }
 
     // GraalVM Reachability Metadata Repository を有効化
     // logback / netty / jackson 等の人気ライブラリのリフレクション設定を自動取得
@@ -31,7 +48,7 @@ graalvmNative {
             mainClass.set("com.shorturl.ApplicationKt")
             buildArgs.addAll(
                 "--no-fallback",
-                "-H:+ReportExceptionStackTraces"
+                "-H:+ReportExceptionStackTraces",
             )
         }
     }
