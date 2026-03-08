@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlin.serialization)
+    id("org.graalvm.buildtools.native")
 }
 
 application {
@@ -10,7 +11,27 @@ application {
 }
 
 kotlin {
-    jvmToolchain(24)
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+        vendor = JvmVendorSpec.GRAAL_VM
+    }
+}
+
+graalvmNative {
+    // GraalVM Reachability Metadata Repository を有効化
+    // logback / netty / jackson 等の人気ライブラリのリフレクション設定を自動取得
+    metadataRepository {
+        enabled = true
+    }
+    binaries {
+        named("main") {
+            mainClass.set("com.shorturl.ApplicationKt")
+            buildArgs.addAll(
+                "--no-fallback",
+                "-H:+ReportExceptionStackTraces"
+            )
+        }
+    }
 }
 
 repositories {

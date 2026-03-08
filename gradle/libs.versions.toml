@@ -1,6 +1,7 @@
 [versions]
 kotlin = "2.3.10"
 ktor = "3.1.1"
+ktor-plugin = "3.4.0"
 logback = "1.5.18"
 xodus = "2.0.1"
 jbcrypt = "0.4"
@@ -11,7 +12,7 @@ navigation3 = "1.1.0-alpha03"
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor-plugin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
