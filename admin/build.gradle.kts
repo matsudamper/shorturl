@@ -15,10 +15,11 @@ kotlin {
                 outputFileName = "admin.js"
                 devServer = KotlinWebpackConfig.DevServer(
                     port = 8081,
-                    proxy = mapOf(
-                        "/internal" to mapOf(
-                            "target" to "http://localhost:8080",
-                            "changeOrigin" to true,
+                    proxy = mutableListOf(
+                        KotlinWebpackConfig.DevServer.Proxy(
+                            context = mutableListOf("/internal"),
+                            target = "http://localhost:8080",
+                            changeOrigin = true,
                         )
                     )
                 )

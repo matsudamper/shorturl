@@ -30,4 +30,7 @@ dependencies {
     implementation(libs.xodus.entity.store)
     implementation(libs.jbcrypt)
     implementation(libs.maxmind.geoip2)
+    testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation(libs.kotlin.test)
 }
