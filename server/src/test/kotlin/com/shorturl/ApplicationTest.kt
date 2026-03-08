@@ -10,6 +10,7 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.cookies.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.testing.*
@@ -79,6 +80,18 @@ class ApplicationTest {
             setBody("""{"username":"admin","password":"password"}""")
         }
         assertEquals(HttpStatusCode.OK, res.status)
+    }
+
+    @Test
+    fun `login with malformed json returns json error`() = testApplication {
+        application { module() }
+        val res = client.post("/internal/auth/login") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"username":123}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, res.status)
+        assertEquals(ContentType.Application.Json, res.contentType()?.withoutParameters())
+        assertTrue(res.bodyAsText().contains("error"))
     }
 
     @Test

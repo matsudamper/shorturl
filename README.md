@@ -40,7 +40,7 @@
 
 前提:
 
-- GraalVM JDK 24（2026-03-08 時点では `24.0.2` 推奨）
+- GraalVM JDK 24
 - Native Image が利用可能な状態であること
 - `native-image --version` が通ること
 

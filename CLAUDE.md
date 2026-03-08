@@ -9,7 +9,7 @@
 ## Build Commands
 
 - まず全体の検証は `./gradlew build` を使う。
-- `/admin` を確認する変更では `./gradlew :admin:wasmJsBrowserDevelopWebpack` も実行する。
+- `/admin` を確認する変更では `./gradlew :admin:wasmJsBrowserDevelopmentExecutableDistribution` も実行する。
 - JVM サーバー起動は `./gradlew :server:run`。
 - GraalVM Native Image は `./gradlew :server:nativeCompile`。
 

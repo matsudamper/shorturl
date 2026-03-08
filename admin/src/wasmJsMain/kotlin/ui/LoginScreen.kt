@@ -51,9 +51,14 @@ fun LoginScreen(onLoggedIn: () -> Unit, onHashGenerator: () -> Unit) {
                     scope.launch {
                         loading = true
                         error = ""
-                        val err = ApiClient.login(username, password)
-                        loading = false
-                        if (err == null) onLoggedIn() else error = err
+                        try {
+                            val err = ApiClient.login(username, password)
+                            if (err == null) onLoggedIn() else error = err
+                        } catch (e: Throwable) {
+                            error = e.message ?: "ログインに失敗しました"
+                        } finally {
+                            loading = false
+                        }
                     }
                 },
                 enabled = !loading && username.isNotBlank() && password.isNotBlank(),

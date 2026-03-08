@@ -1,5 +1,8 @@
 package com.shorturl.routes
 
+import com.shorturl.receiveJson
+import com.shorturl.respondError
+import com.shorturl.respondJson
 import com.shorturl.model.*
 import com.shorturl.repository.UrlRepository
 import com.shorturl.service.AnalyticsService
@@ -16,29 +19,29 @@ fun Route.adminApiRoutes() {
     route("/internal") {
         // --- 認証不要 ---
         post("/auth/login") {
-            val req = call.receive<LoginRequest>()
+            val req = call.receiveJson(LoginRequest.serializer())
             val user = AuthService.authenticate(req.username, req.password)
             if (user == null) {
-                call.respond(HttpStatusCode.Unauthorized, ErrorResponse("ユーザー名またはパスワードが違います"))
+                call.respondError(HttpStatusCode.Unauthorized, "ユーザー名またはパスワードが違います")
                 return@post
             }
             call.sessions.set(UserSession(userId = user.id, username = user.username))
-            call.respond(mapOf("userId" to user.id, "username" to user.username))
+            call.respondJson(LoginResponse.serializer(), LoginResponse(user.id, user.username))
         }
 
         post("/auth/logout") {
             call.sessions.clear<UserSession>()
-            call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+            call.respondJson(OkResponse.serializer(), OkResponse(true))
         }
 
         // bcrypt ハッシュ生成ツール（ユーザー登録用）
         post("/auth/hash") {
-            val req = call.receive<HashRequest>()
+            val req = call.receiveJson(HashRequest.serializer())
             if (req.password.isBlank()) {
-                call.respond(HttpStatusCode.BadRequest, ErrorResponse("パスワードを入力してください"))
+                call.respondError(HttpStatusCode.BadRequest, "パスワードを入力してください")
                 return@post
             }
-            call.respond(HashResponse(AuthService.hashPassword(req.password)))
+            call.respondJson(HashResponse.serializer(), HashResponse(AuthService.hashPassword(req.password)))
         }
 
         // --- 認証必須 ---
@@ -50,40 +53,46 @@ fun Route.adminApiRoutes() {
                 val q = call.request.queryParameters["q"]
 
                 if (q != null && q.isNotBlank()) {
-                    call.respond(PagedResponse(
-                        items = UrlRepository.search(q, offset, limit),
-                        total = UrlRepository.searchCount(q),
-                        offset = offset,
-                        limit = limit,
-                    ))
+                    call.respondJson(
+                        PagedResponse.serializer(),
+                        PagedResponse(
+                            items = UrlRepository.search(q, offset, limit),
+                            total = UrlRepository.searchCount(q),
+                            offset = offset,
+                            limit = limit,
+                        )
+                    )
                 } else {
-                    call.respond(PagedResponse(
-                        items = UrlRepository.findAll(offset, limit),
-                        total = UrlRepository.count(),
-                        offset = offset,
-                        limit = limit,
-                    ))
+                    call.respondJson(
+                        PagedResponse.serializer(),
+                        PagedResponse(
+                            items = UrlRepository.findAll(offset, limit),
+                            total = UrlRepository.count(),
+                            offset = offset,
+                            limit = limit,
+                        )
+                    )
                 }
             }
 
             post {
                 val session = call.requireSession() ?: return@post
-                val req = call.receive<CreateUrlRequest>()
+                val req = call.receiveJson(CreateUrlRequest.serializer())
 
                 if (!isValidUrl(req.originalUrl)) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("URLは http:// または https:// で始まる必要があります"))
+                    call.respondError(HttpStatusCode.BadRequest, "URLは http:// または https:// で始まる必要があります")
                     return@post
                 }
                 if (req.slug.length < 2 || req.slug.length > 128) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("スラッグは2〜128文字にしてください"))
+                    call.respondError(HttpStatusCode.BadRequest, "スラッグは2〜128文字にしてください")
                     return@post
                 }
                 if (isReservedSlug(req.slug)) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("このスラッグは予約済みです"))
+                    call.respondError(HttpStatusCode.BadRequest, "このスラッグは予約済みです")
                     return@post
                 }
                 if (UrlRepository.existsBySlug(req.slug)) {
-                    call.respond(HttpStatusCode.Conflict, ErrorResponse("このスラッグは既に使用されています"))
+                    call.respondError(HttpStatusCode.Conflict, "このスラッグは既に使用されています")
                     return@post
                 }
 
@@ -93,68 +102,68 @@ fun Route.adminApiRoutes() {
                     isAutoGenerated = req.isAutoGenerated,
                     createdBy = session.userId,
                 )
-                call.respond(HttpStatusCode.Created, created)
+                call.respondJson(ShortenedUrl.serializer(), created, HttpStatusCode.Created)
             }
 
             get("/{id}") {
                 call.requireSession() ?: return@get
                 val id = call.parameters["id"]!!
                 val url = UrlRepository.findById(id)
-                    ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("URLが見つかりません"))
-                call.respond(url)
+                    ?: return@get call.respondError(HttpStatusCode.NotFound, "URLが見つかりません")
+                call.respondJson(ShortenedUrl.serializer(), url)
             }
 
             put("/{id}") {
                 call.requireSession() ?: return@put
                 val id = call.parameters["id"]!!
-                val req = call.receive<UpdateUrlRequest>()
+                val req = call.receiveJson(UpdateUrlRequest.serializer())
 
                 if (!isValidUrl(req.originalUrl)) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("URLは http:// または https:// で始まる必要があります"))
+                    call.respondError(HttpStatusCode.BadRequest, "URLは http:// または https:// で始まる必要があります")
                     return@put
                 }
 
                 val updated = UrlRepository.updateOriginalUrl(id, req.originalUrl)
-                    ?: return@put call.respond(HttpStatusCode.NotFound, ErrorResponse("URLが見つかりません"))
-                call.respond(updated)
+                    ?: return@put call.respondError(HttpStatusCode.NotFound, "URLが見つかりません")
+                call.respondJson(ShortenedUrl.serializer(), updated)
             }
 
             delete("/{id}") {
                 call.requireSession() ?: return@delete
                 val id = call.parameters["id"]!!
                 if (!UrlRepository.delete(id)) {
-                    call.respond(HttpStatusCode.NotFound, ErrorResponse("URLが見つかりません"))
+                    call.respondError(HttpStatusCode.NotFound, "URLが見つかりません")
                     return@delete
                 }
-                call.respond(HttpStatusCode.OK, mapOf("ok" to true))
+                call.respondJson(OkResponse.serializer(), OkResponse(true))
             }
 
             get("/{id}/analytics") {
                 call.requireSession() ?: return@get
                 val id = call.parameters["id"]!!
                 UrlRepository.findById(id)
-                    ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("URLが見つかりません"))
-                call.respond(AnalyticsService.getSummary(id))
+                    ?: return@get call.respondError(HttpStatusCode.NotFound, "URLが見つかりません")
+                call.respondJson(AnalyticsSummary.serializer(), AnalyticsService.getSummary(id))
             }
         }
 
         // スラッグ生成（プレビュー用・DBに保存しない）
         post("/slugs/generate") {
             call.requireSession() ?: return@post
-            val req = call.receive<GenerateSlugRequest>()
+            val req = call.receiveJson(GenerateSlugRequest.serializer())
             val type = SlugGenerator.parseType(req.type)
-                ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("不正なタイプです"))
+                ?: return@post call.respondError(HttpStatusCode.BadRequest, "不正なタイプです")
 
             val minLen = SlugGenerator.minLength(type)
             val maxLen = SlugGenerator.maxLength(type)
             if (req.length !in minLen..maxLen) {
-                call.respond(HttpStatusCode.BadRequest, ErrorResponse("文字数は $minLen〜$maxLen の範囲で指定してください"))
+                call.respondError(HttpStatusCode.BadRequest, "文字数は $minLen〜$maxLen の範囲で指定してください")
                 return@post
             }
 
             val slug = SlugGenerator.generateUnique(type, req.length)
-                ?: return@post call.respond(HttpStatusCode.Conflict, ErrorResponse("スラッグの生成に失敗しました。再度お試しください"))
-            call.respond(GenerateSlugResponse(slug))
+                ?: return@post call.respondError(HttpStatusCode.Conflict, "スラッグの生成に失敗しました。再度お試しください")
+            call.respondJson(GenerateSlugResponse.serializer(), GenerateSlugResponse(slug))
         }
     }
 }
@@ -162,7 +171,7 @@ fun Route.adminApiRoutes() {
 private suspend fun ApplicationCall.requireSession(): UserSession? {
     val session = sessions.get<UserSession>()
     if (session == null) {
-        respond(HttpStatusCode.Unauthorized, ErrorResponse("ログインが必要です"))
+        respondError(HttpStatusCode.Unauthorized, "ログインが必要です")
     }
     return session
 }

@@ -5,8 +5,8 @@ import java.io.File
 private val DEV_SECRET = "shorturl-dev-secret-key-32bytes!!"
 
 private val ADMIN_DIST_CANDIDATES = listOf(
-    "./admin/build/dist/wasmJs/productionExecutable",    // IntelliJ（プロジェクトルートが作業ディレクトリ）
-    "../admin/build/dist/wasmJs/productionExecutable",   // Gradle server:run（server/が作業ディレクトリ）
+    "./admin/build/dist/wasmJs/productionExecutable",
+    "../admin/build/dist/wasmJs/productionExecutable",
 )
 
 private fun defaultAdminDist(): String =

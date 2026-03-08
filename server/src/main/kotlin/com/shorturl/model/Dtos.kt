@@ -31,6 +31,12 @@ data class HashResponse(val hash: String)
 data class ErrorResponse(val error: String)
 
 @Serializable
+data class LoginResponse(val userId: String, val username: String)
+
+@Serializable
+data class OkResponse(val ok: Boolean)
+
+@Serializable
 data class PagedResponse(
     val items: List<ShortenedUrl>,
     val total: Long,
