@@ -1,37 +1,53 @@
 package com.shorturl.repository
 
-import com.shorturl.db.XodusDatabase
+import com.shorturl.db.AppDatabase
+import com.shorturl.db.UsersTable
 import com.shorturl.model.User
-import jetbrains.exodus.entitystore.Entity
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Instant
 import java.util.UUID
 
 object UserRepository {
-    private const val TYPE = "User"
-
-    fun findByUsername(username: String): User? = XodusDatabase.read {
-        find(TYPE, "username", username).firstOrNull()?.toModel()
+    fun findByUsername(username: String): User? = AppDatabase.read {
+        UsersTable.selectAll()
+            .where { UsersTable.username eq username }
+            .limit(1)
+            .firstOrNull()
+            ?.toModel()
     }
 
-    fun findById(id: String): User? = XodusDatabase.read {
-        find(TYPE, "id", id).firstOrNull()?.toModel()
+    fun findById(id: String): User? = AppDatabase.read {
+        UsersTable.selectAll()
+            .where { UsersTable.id eq id }
+            .limit(1)
+            .firstOrNull()
+            ?.toModel()
     }
 
-    fun create(username: String, passwordHash: String): User = XodusDatabase.writeReturning {
+    fun create(username: String, passwordHash: String): User = AppDatabase.write {
         val id = UUID.randomUUID().toString()
         val now = Instant.now().toEpochMilli()
-        val entity = newEntity(TYPE)
-        entity.setProperty("id", id)
-        entity.setProperty("username", username)
-        entity.setProperty("passwordHash", passwordHash)
-        entity.setProperty("createdAt", now)
-        entity.toModel()
+        UsersTable.insert {
+            it[UsersTable.id] = id
+            it[UsersTable.username] = username
+            it[UsersTable.passwordHash] = passwordHash
+            it[UsersTable.createdAt] = now
+        }
+        User(
+            id = id,
+            username = username,
+            passwordHash = passwordHash,
+            createdAt = now,
+        )
     }
 
-    private fun Entity.toModel() = User(
-        id = getProperty("id") as String,
-        username = getProperty("username") as String,
-        passwordHash = getProperty("passwordHash") as String,
-        createdAt = getProperty("createdAt") as Long,
+    private fun ResultRow.toModel() = User(
+        id = this[UsersTable.id],
+        username = this[UsersTable.username],
+        passwordHash = this[UsersTable.passwordHash],
+        createdAt = this[UsersTable.createdAt],
     )
 }

@@ -16,7 +16,7 @@ private fun defaultAdminDist(): String =
 /**
  * @param port バインドポート
  * @param host バインドホスト
- * @param dataDir Xodus データディレクトリ
+ * @param dataDir SQLite データ配置先ディレクトリまたは DB ファイル
  * @param sessionSecret セッション署名キー（32文字以上推奨）
  * @param geoipMmdb MaxMind GeoLite2 Country mmdb パス
  * @param adminDist Compose Wasm ビルド出力ディレクトリ

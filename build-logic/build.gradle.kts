@@ -7,9 +7,8 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.xodus:xodus-openAPI:2.0.1")
-    implementation("org.jetbrains.xodus:xodus-entity-store:2.0.1")
     implementation("org.mindrot:jbcrypt:0.4")
+    implementation("org.xerial:sqlite-jdbc:3.50.3.0")
 }
 
 gradlePlugin {

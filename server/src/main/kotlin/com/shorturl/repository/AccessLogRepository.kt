@@ -1,14 +1,17 @@
 package com.shorturl.repository
 
-import com.shorturl.db.XodusDatabase
+import com.shorturl.db.AccessLogsTable
+import com.shorturl.db.AppDatabase
 import com.shorturl.model.AccessLog
-import jetbrains.exodus.entitystore.Entity
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Instant
 import java.util.UUID
 
 object AccessLogRepository {
-    private const val TYPE = "AccessLog"
-
     fun record(
         slugId: String,
         ipAddress: String,
@@ -17,36 +20,43 @@ object AccessLogRepository {
         country: String?,
         deviceType: String,
         browser: String,
-    ): Unit = XodusDatabase.write {
-        val entity = newEntity(TYPE)
-        entity.setProperty("id", UUID.randomUUID().toString())
-        entity.setProperty("slugId", slugId)
-        entity.setProperty("accessedAt", Instant.now().toEpochMilli())
-        entity.setProperty("ipAddress", ipAddress)
-        entity.setProperty("userAgent", userAgent)
-        if (referer != null) entity.setProperty("referer", referer)
-        if (country != null) entity.setProperty("country", country)
-        entity.setProperty("deviceType", deviceType)
-        entity.setProperty("browser", browser)
+    ): Unit = AppDatabase.write {
+        AccessLogsTable.insert {
+            it[id] = UUID.randomUUID().toString()
+            it[AccessLogsTable.slugId] = slugId
+            it[accessedAt] = Instant.now().toEpochMilli()
+            it[AccessLogsTable.ipAddress] = ipAddress
+            it[AccessLogsTable.userAgent] = userAgent
+            it[AccessLogsTable.referer] = referer
+            it[AccessLogsTable.country] = country
+            it[AccessLogsTable.deviceType] = deviceType
+            it[AccessLogsTable.browser] = browser
+        }
     }
 
-    fun findBySlugId(slugId: String, limit: Int = 10000): List<AccessLog> = XodusDatabase.read {
-        find(TYPE, "slugId", slugId).toList().take(limit).map { it.toModel() }
+    fun findBySlugId(slugId: String, limit: Int = 10000): List<AccessLog> = AppDatabase.read {
+        AccessLogsTable.selectAll()
+            .where { AccessLogsTable.slugId eq slugId }
+            .orderBy(AccessLogsTable.accessedAt, SortOrder.DESC)
+            .limit(limit)
+            .map { it.toModel() }
     }
 
-    fun countBySlugId(slugId: String): Long = XodusDatabase.read {
-        find(TYPE, "slugId", slugId).size()
+    fun countBySlugId(slugId: String): Long = AppDatabase.read {
+        AccessLogsTable.selectAll()
+            .where { AccessLogsTable.slugId eq slugId }
+            .count()
     }
 
-    private fun Entity.toModel() = AccessLog(
-        id = getProperty("id") as String,
-        slugId = getProperty("slugId") as String,
-        accessedAt = getProperty("accessedAt") as Long,
-        ipAddress = getProperty("ipAddress") as String,
-        userAgent = getProperty("userAgent") as String,
-        referer = getProperty("referer") as? String,
-        country = getProperty("country") as? String,
-        deviceType = getProperty("deviceType") as String,
-        browser = getProperty("browser") as String,
+    private fun ResultRow.toModel() = AccessLog(
+        id = this[AccessLogsTable.id],
+        slugId = this[AccessLogsTable.slugId],
+        accessedAt = this[AccessLogsTable.accessedAt],
+        ipAddress = this[AccessLogsTable.ipAddress],
+        userAgent = this[AccessLogsTable.userAgent],
+        referer = this[AccessLogsTable.referer],
+        country = this[AccessLogsTable.country],
+        deviceType = this[AccessLogsTable.deviceType],
+        browser = this[AccessLogsTable.browser],
     )
 }

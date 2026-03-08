@@ -8,7 +8,10 @@ plugins {
 
 application {
     mainClass.set("com.shorturl.ApplicationKt")
-    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=true")
+    applicationDefaultJvmArgs = listOf(
+        "-Dio.ktor.development=true",
+        "--enable-native-access=ALL-UNNAMED",
+    )
 }
 
 val graalVmLanguageVersion = JavaLanguageVersion.of(24)
@@ -60,6 +63,7 @@ repositories {
 
 tasks.named<Test>("test") {
     workingDir = rootProject.projectDir
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 dependencies {
@@ -71,8 +75,9 @@ dependencies {
     implementation(libs.ktor.server.html.builder)
     implementation(libs.ktor.serialization.json)
     implementation(libs.logback.classic)
-    implementation(libs.xodus.open.api)
-    implementation(libs.xodus.entity.store)
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.sqlite.jdbc)
     implementation(libs.jbcrypt)
     implementation(libs.maxmind.geoip2)
     testImplementation(libs.ktor.server.test.host)

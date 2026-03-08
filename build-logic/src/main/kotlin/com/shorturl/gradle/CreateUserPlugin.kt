@@ -8,7 +8,7 @@ class CreateUserPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         project.tasks.register<CreateUserTask>("createUser") {
             group = "application"
-            description = "Creates an admin user in the Xodus datastore."
+            description = "Creates an admin user in the SQLite datastore."
             username.convention(project.providers.gradleProperty("username"))
             password.convention(project.providers.gradleProperty("password"))
             dataDir.convention(

@@ -1,7 +1,7 @@
 package com.shorturl
 
 import com.shorturl.config.AppConfig
-import com.shorturl.db.XodusDatabase
+import com.shorturl.db.AppDatabase
 import com.shorturl.model.UserSession
 import com.shorturl.routes.adminApiRoutes
 import com.shorturl.routes.redirectRoutes
@@ -23,14 +23,14 @@ fun main() {
     val config = AppConfig()
     config.printSummary()
 
-    XodusDatabase.init(config.dataDir)
+    AppDatabase.init(config.dataDir)
     GeoIpService.init(config.geoipMmdb)
 
     val server = embeddedServer(CIO, port = config.port, host = config.host) {
         module(config)
     }
     Runtime.getRuntime().addShutdownHook(Thread {
-        XodusDatabase.close()
+        AppDatabase.close()
         GeoIpService.close()
     })
     server.start(wait = true)

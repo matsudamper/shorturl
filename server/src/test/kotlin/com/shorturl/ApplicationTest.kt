@@ -1,7 +1,7 @@
 package com.shorturl
 
 import com.shorturl.config.AppConfig
-import com.shorturl.db.XodusDatabase
+import com.shorturl.db.AppDatabase
 import com.shorturl.model.*
 import com.shorturl.repository.UserRepository
 import com.shorturl.service.AuthService
@@ -22,14 +22,14 @@ class ApplicationTest {
 
     @BeforeTest
     fun setup() {
-        XodusDatabase.init(tempDir.absolutePath)
+        AppDatabase.init(tempDir.absolutePath)
         GeoIpService.init("nonexistent") // ファイルなし → no-op
         UserRepository.create("admin", AuthService.hashPassword("password"))
     }
 
     @AfterTest
     fun teardown() {
-        XodusDatabase.close()
+        AppDatabase.close()
         tempDir.deleteRecursively()
     }
 

@@ -1,6 +1,5 @@
 package com.shorturl.gradle
 
-import jetbrains.exodus.entitystore.PersistentEntityStores
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.provider.Property
@@ -8,6 +7,8 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.mindrot.jbcrypt.BCrypt
+import java.io.File
+import java.sql.DriverManager
 import java.time.Instant
 import java.util.UUID
 
@@ -30,24 +31,54 @@ abstract class CreateUserTask : DefaultTask() {
         val pass = password.orNull
             ?: throw GradleException("password が指定されていません。-Ppassword=<pass> を付けてください")
 
-        val store = PersistentEntityStores.newInstance(dataDir.get())
-        store.use { store ->
-            val exists = store.computeInReadonlyTransaction { txn ->
-                txn.find("User", "username", user).firstOrNull() != null
+        val dbFile = resolveDatabaseFile(dataDir.get())
+        dbFile.parentFile?.mkdirs()
+
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.absolutePath}").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeUpdate(
+                    """
+                    CREATE TABLE IF NOT EXISTS users (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        username TEXT NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        created_at INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users (username)")
             }
-            if (exists) {
-                throw GradleException("ユーザー '$user' は既に存在します")
+
+            connection.prepareStatement("SELECT 1 FROM users WHERE username = ? LIMIT 1").use { statement ->
+                statement.setString(1, user)
+                statement.executeQuery().use { resultSet ->
+                    if (resultSet.next()) {
+                        throw GradleException("ユーザー '$user' は既に存在します")
+                    }
+                }
             }
 
             val id = UUID.randomUUID().toString()
-            store.executeInTransaction { txn ->
-                val entity = txn.newEntity("User")
-                entity.setProperty("id", id)
-                entity.setProperty("username", user)
-                entity.setProperty("passwordHash", BCrypt.hashpw(pass, BCrypt.gensalt()))
-                entity.setProperty("createdAt", Instant.now().toEpochMilli())
+            connection.prepareStatement(
+                """
+                INSERT INTO users (id, username, password_hash, created_at)
+                VALUES (?, ?, ?, ?)
+                """.trimIndent()
+            ).use { statement ->
+                statement.setString(1, id)
+                statement.setString(2, user)
+                statement.setString(3, BCrypt.hashpw(pass, BCrypt.gensalt()))
+                statement.setLong(4, Instant.now().toEpochMilli())
+                statement.executeUpdate()
             }
             logger.lifecycle("SUCCESS: ユーザーを作成しました (id=$id, username=$user)")
         }
+    }
+
+    private fun resolveDatabaseFile(dataDir: String): File {
+        val configured = File(dataDir)
+        val looksLikeFile = configured.exists() && configured.isFile ||
+            configured.extension.lowercase() in setOf("db", "sqlite", "sqlite3")
+        return if (looksLikeFile) configured else configured.resolve("shorturl.db")
     }
 }
