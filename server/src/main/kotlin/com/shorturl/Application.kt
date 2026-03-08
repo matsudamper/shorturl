@@ -53,7 +53,7 @@ fun Application.module(config: AppConfig = AppConfig()) {
     }
 
     routing {
-        get("/health") {
+        get("/healthz") {
             call.respondText("OK")
         }
 
