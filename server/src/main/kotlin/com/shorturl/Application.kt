@@ -1,5 +1,6 @@
 package com.shorturl
 
+import com.shorturl.config.AppConfig
 import com.shorturl.db.XodusDatabase
 import com.shorturl.model.UserSession
 import com.shorturl.routes.adminApiRoutes
@@ -17,15 +18,14 @@ import io.ktor.server.sessions.*
 import java.io.File
 
 fun main() {
-    val dataDir = System.getenv("DATA_DIR") ?: "./data"
-    val geoipPath = System.getenv("GEOIP_MMDB") ?: "./GeoLite2-Country.mmdb"
-    val adminDist = System.getenv("ADMIN_DIST") ?: "./admin-dist"
+    val config = AppConfig()
+    config.printSummary()
 
-    XodusDatabase.init(dataDir)
-    GeoIpService.init(geoipPath)
+    XodusDatabase.init(config.dataDir)
+    GeoIpService.init(config.geoipMmdb)
 
-    val server = embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
-        module(adminDist)
+    val server = embeddedServer(Netty, port = config.port, host = config.host) {
+        module(config)
     }
     Runtime.getRuntime().addShutdownHook(Thread {
         XodusDatabase.close()
@@ -34,17 +34,21 @@ fun main() {
     server.start(wait = true)
 }
 
-fun Application.module(adminDist: String = "./admin-dist") {
+fun Application.module(config: AppConfig = AppConfig()) {
     install(ContentNegotiation) {
         json()
     }
 
-    val sessionSecret = System.getenv("SESSION_SECRET") ?: "shorturl-dev-secret-key-32bytes!!"
     install(Sessions) {
         cookie<UserSession>("user_session") {
             cookie.httpOnly = true
+            cookie.secure = config.cookieSecure
             cookie.extensions["SameSite"] = "Strict"
-            transform(SessionTransportTransformerMessageAuthentication(sessionSecret.toByteArray(Charsets.UTF_8)))
+            transform(
+                SessionTransportTransformerMessageAuthentication(
+                    config.sessionSecret.toByteArray(Charsets.UTF_8)
+                )
+            )
         }
     }
 
@@ -53,11 +57,14 @@ fun Application.module(adminDist: String = "./admin-dist") {
             call.respondText("OK")
         }
 
-        // 管理画面（Compose Wasm）の静的ファイル配信
-        // ビルド手順: ./gradlew admin:wasmJsBrowserProductionWebpack
-        //             cp -r admin/build/dist/wasmJs/productionExecutable/ admin-dist/
-        staticFiles("/admin", File(adminDist)) {
-            default("index.html")
+        // 管理画面（Compose Wasm）
+        // ビルド: ./gradlew admin:wasmJsBrowserProductionWebpack
+        //         cp -r admin/build/dist/wasmJs/productionExecutable/ $ADMIN_DIST
+        val adminDir = File(config.adminDist)
+        if (adminDir.exists()) {
+            staticFiles("/admin", adminDir) {
+                default("index.html")
+            }
         }
 
         adminApiRoutes()
