@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlin.serialization)
     id("org.graalvm.buildtools.native")
+    id("com.shorturl.gradle.createuser")
 }
 
 application {
