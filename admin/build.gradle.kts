@@ -1,30 +1,11 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
-import java.net.URI
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
-}
-
-val fontsDir = layout.projectDirectory.dir("src/wasmJsMain/resources/fonts")
-
-tasks.register("downloadFonts") {
-    outputs.dir(fontsDir)
-    doLast {
-        fontsDir.asFile.mkdirs()
-        val target = fontsDir.file("NotoSansJP.ttf").asFile
-        if (!target.exists()) {
-            println("Downloading NotoSansJP.ttf...")
-            val url = URI("https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf").toURL()
-            target.writeBytes(url.readBytes())
-            println("Downloaded to ${target.absolutePath}")
-        } else {
-            println("NotoSansJP.ttf already exists, skipping.")
-        }
-    }
 }
 
 kotlin {
