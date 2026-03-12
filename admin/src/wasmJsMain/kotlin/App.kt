@@ -69,7 +69,7 @@ private fun createTypography(fontFamily: FontFamily): Typography {
 @Composable
 fun App() {
     val backStack = rememberNavBackStack(navConfig, LoginRoute)
-    val fontFamily = rememberNotoSansJpFontFamily()
+    val fontFamily = rememberCustomFontFamily()
 
     MaterialTheme(typography = createTypography(fontFamily)) {
         NavDisplay(
