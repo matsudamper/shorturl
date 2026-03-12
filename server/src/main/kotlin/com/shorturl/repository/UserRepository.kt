@@ -4,7 +4,9 @@ import com.shorturl.db.AppDatabase
 import com.shorturl.db.UsersTable
 import com.shorturl.model.User
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Instant
@@ -27,6 +29,12 @@ object UserRepository {
             ?.toModel()
     }
 
+    fun findAll(): List<User> = AppDatabase.read {
+        UsersTable.selectAll()
+            .orderBy(UsersTable.createdAt, SortOrder.ASC)
+            .map { it.toModel() }
+    }
+
     fun create(username: String, passwordHash: String): User = AppDatabase.write {
         val id = UUID.randomUUID().toString()
         val now = Instant.now().toEpochMilli()
@@ -42,6 +50,10 @@ object UserRepository {
             passwordHash = passwordHash,
             createdAt = now,
         )
+    }
+
+    fun delete(id: String): Boolean = AppDatabase.write {
+        UsersTable.deleteWhere { UsersTable.id eq id } > 0
     }
 
     private fun ResultRow.toModel() = User(

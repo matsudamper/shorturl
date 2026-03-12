@@ -55,3 +55,16 @@ data class HashResponse(val hash: String)
 
 @Serializable
 data class ErrorResponse(val error: String)
+
+@Serializable
+data class UserSummary(
+    val id: String,
+    val username: String,
+    val createdAt: Long,
+)
+
+@Serializable
+data class DeleteUserResponse(
+    val ok: Boolean,
+    val deletedCurrentUser: Boolean,
+)

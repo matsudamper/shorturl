@@ -5,6 +5,7 @@ import io.ktor.client.engine.js.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import model.*
 
@@ -28,6 +29,18 @@ object ApiClient {
 
     suspend fun logout() {
         client.post("$BASE/auth/logout")
+    }
+
+    suspend fun listUsers(): Result<List<UserSummary>> = runCatching {
+        val res = client.get("$BASE/users")
+        if (!res.status.isSuccess()) throw Exception(res.errorMessage())
+        decode(res, ListSerializer(UserSummary.serializer()))
+    }
+
+    suspend fun deleteUser(id: String): Result<DeleteUserResponse> = runCatching {
+        val res = client.delete("$BASE/users/$id")
+        if (!res.status.isSuccess()) throw Exception(res.errorMessage())
+        decode(res, DeleteUserResponse.serializer())
     }
 
     suspend fun generateHash(password: String): Result<String> = runCatching {

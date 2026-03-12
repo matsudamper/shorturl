@@ -29,6 +29,9 @@ data object HashGeneratorRoute : NavKey
 data object UrlListRoute : NavKey
 
 @Serializable
+data object UserListRoute : NavKey
+
+@Serializable
 data object UrlCreateRoute : NavKey
 
 @Serializable
@@ -43,6 +46,7 @@ private val navConfig = SavedStateConfiguration {
             subclass(LoginRoute::class, LoginRoute.serializer())
             subclass(HashGeneratorRoute::class, HashGeneratorRoute.serializer())
             subclass(UrlListRoute::class, UrlListRoute.serializer())
+            subclass(UserListRoute::class, UserListRoute.serializer())
             subclass(UrlCreateRoute::class, UrlCreateRoute.serializer())
             subclass(UrlEditRoute::class, UrlEditRoute.serializer())
             subclass(AnalyticsRoute::class, AnalyticsRoute.serializer())
@@ -108,9 +112,19 @@ fun App() {
                 UrlListRoute -> NavEntry(key) {
                     UrlListScreen(
                         onCreateNew = { backStack.add(UrlCreateRoute) },
+                        onManageUsers = { backStack.add(UserListRoute) },
                         onEdit = { backStack.add(UrlEditRoute(it)) },
                         onAnalytics = { backStack.add(AnalyticsRoute(it.id, it.slug)) },
                         onLogout = {
+                            backStack.removeAll { true }
+                            backStack.add(LoginRoute)
+                        },
+                    )
+                }
+                UserListRoute -> NavEntry(key) {
+                    UserListScreen(
+                        onBack = { backStack.removeLastOrNull() },
+                        onLoggedOut = {
                             backStack.removeAll { true }
                             backStack.add(LoginRoute)
                         },

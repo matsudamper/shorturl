@@ -17,6 +17,7 @@ private const val PAGE_SIZE = 20
 @Composable
 fun UrlListScreen(
     onCreateNew: () -> Unit,
+    onManageUsers: () -> Unit,
     onEdit: (ShortenedUrl) -> Unit,
     onAnalytics: (ShortenedUrl) -> Unit,
     onLogout: () -> Unit,
@@ -45,14 +46,20 @@ fun UrlListScreen(
     LaunchedEffect(Unit) { load() }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // ヘッダー
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("URL一覧", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-            Button(onClick = onCreateNew) { Text("+ 新規作成") }
-            Spacer(Modifier.width(8.dp))
-            OutlinedButton(onClick = {
-                scope.launch { ApiClient.logout(); onLogout() }
-            }) { Text("ログアウト") }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text("URL一覧", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                OutlinedButton(onClick = {
+                    scope.launch { ApiClient.logout(); onLogout() }
+                }) { Text("ログアウト") }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onCreateNew) { Text("+ 新規作成") }
+                OutlinedButton(onClick = onManageUsers) { Text("ユーザー管理") }
+            }
         }
 
         Spacer(Modifier.height(12.dp))

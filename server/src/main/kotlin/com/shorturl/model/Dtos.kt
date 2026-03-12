@@ -37,6 +37,19 @@ data class LoginResponse(val userId: String, val username: String)
 data class OkResponse(val ok: Boolean)
 
 @Serializable
+data class UserSummary(
+    val id: String,
+    val username: String,
+    val createdAt: Long,
+)
+
+@Serializable
+data class DeleteUserResponse(
+    val ok: Boolean,
+    val deletedCurrentUser: Boolean,
+)
+
+@Serializable
 data class PagedResponse(
     val items: List<ShortenedUrl>,
     val total: Long,

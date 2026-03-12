@@ -4,6 +4,7 @@ import com.shorturl.receiveJson
 import com.shorturl.respondError
 import com.shorturl.respondJson
 import com.shorturl.model.*
+import com.shorturl.repository.UserRepository
 import com.shorturl.repository.UrlRepository
 import com.shorturl.service.AnalyticsService
 import com.shorturl.service.AuthService
@@ -14,6 +15,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import kotlinx.serialization.builtins.ListSerializer
 
 fun Route.adminApiRoutes() {
     route("/internal") {
@@ -45,9 +47,41 @@ fun Route.adminApiRoutes() {
         }
 
         // --- 認証必須 ---
+        route("/users") {
+            get {
+                call.requireSession() ?: return@get
+                val users = UserRepository.findAll().map {
+                    UserSummary(
+                        id = it.id,
+                        username = it.username,
+                        createdAt = it.createdAt,
+                    )
+                }
+                call.respondJson(ListSerializer(UserSummary.serializer()), users)
+            }
+
+            delete("/{id}") {
+                val session = call.requireSession() ?: return@delete
+                val id = call.parameters["id"]!!
+                if (!UserRepository.delete(id)) {
+                    call.respondError(HttpStatusCode.NotFound, "ユーザーが見つかりません")
+                    return@delete
+                }
+
+                val deletedCurrentUser = id == session.userId
+                if (deletedCurrentUser) {
+                    call.sessions.clear<UserSession>()
+                }
+                call.respondJson(
+                    DeleteUserResponse.serializer(),
+                    DeleteUserResponse(ok = true, deletedCurrentUser = deletedCurrentUser),
+                )
+            }
+        }
+
         route("/urls") {
             get {
-                val session = call.requireSession() ?: return@get
+                call.requireSession() ?: return@get
                 val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
                 val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
                 val q = call.request.queryParameters["q"]
@@ -172,6 +206,12 @@ private suspend fun ApplicationCall.requireSession(): UserSession? {
     val session = sessions.get<UserSession>()
     if (session == null) {
         respondError(HttpStatusCode.Unauthorized, "ログインが必要です")
+        return null
+    }
+    if (UserRepository.findById(session.userId) == null) {
+        sessions.clear<UserSession>()
+        respondError(HttpStatusCode.Unauthorized, "セッションが無効です。再度ログインしてください")
+        return null
     }
     return session
 }

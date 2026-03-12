@@ -13,6 +13,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.builtins.ListSerializer
 import io.ktor.server.testing.*
 import java.nio.file.Files
 import kotlin.test.*
@@ -97,6 +98,8 @@ class ApplicationTest {
     @Test
     fun `protected endpoint without session returns 401`() = testApplication {
         application { module() }
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/internal/users").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/internal/users/nope").status)
         assertEquals(HttpStatusCode.Unauthorized, client.get("/internal/urls").status)
         assertEquals(HttpStatusCode.Unauthorized, client.post("/internal/urls").status)
         assertEquals(HttpStatusCode.Unauthorized, client.post("/internal/slugs/generate").status)
@@ -109,6 +112,54 @@ class ApplicationTest {
         c.login()
         assertEquals(HttpStatusCode.OK, c.get("/internal/urls").status)
         c.post("/internal/auth/logout")
+        assertEquals(HttpStatusCode.Unauthorized, c.get("/internal/urls").status)
+    }
+
+    @Test
+    fun `list users returns user summaries`() = testApplication {
+        application { module() }
+        UserRepository.create("editor", AuthService.hashPassword("secret"))
+
+        val c = jsonClient()
+        c.login()
+
+        val res = c.get("/internal/users")
+        assertEquals(HttpStatusCode.OK, res.status)
+
+        val body = res.bodyAsText()
+        val users = ServerJson.decodeFromString(ListSerializer(UserSummary.serializer()), body)
+        assertEquals(setOf("admin", "editor"), users.map { it.username }.toSet())
+        assertFalse(body.contains("passwordHash"))
+        assertFalse(body.contains("password_hash"))
+    }
+
+    @Test
+    fun `delete user removes it from list`() = testApplication {
+        application { module() }
+        val target = UserRepository.create("editor", AuthService.hashPassword("secret"))
+
+        val c = jsonClient()
+        c.login()
+
+        val deleted = c.delete("/internal/users/${target.id}")
+        assertEquals(HttpStatusCode.OK, deleted.status)
+        assertFalse(deleted.body<DeleteUserResponse>().deletedCurrentUser)
+
+        val users = c.get("/internal/users").userListBody()
+        assertEquals(listOf("admin"), users.map { it.username })
+    }
+
+    @Test
+    fun `delete current user clears session`() = testApplication {
+        application { module() }
+        val admin = UserRepository.findByUsername("admin") ?: error("admin user not found")
+
+        val c = jsonClient()
+        c.login()
+
+        val deleted = c.delete("/internal/users/${admin.id}")
+        assertEquals(HttpStatusCode.OK, deleted.status)
+        assertTrue(deleted.body<DeleteUserResponse>().deletedCurrentUser)
         assertEquals(HttpStatusCode.Unauthorized, c.get("/internal/urls").status)
     }
 
@@ -495,4 +546,7 @@ class ApplicationTest {
         assertEquals(HttpStatusCode.Created, res.status, "URL作成失敗: ${res.body<String>()}")
         return res.body()
     }
+
+    private suspend fun HttpResponse.userListBody(): List<UserSummary> =
+        ServerJson.decodeFromString(ListSerializer(UserSummary.serializer()), bodyAsText())
 }
