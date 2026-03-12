@@ -6,7 +6,6 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
-import org.mindrot.jbcrypt.BCrypt
 import java.io.File
 import java.sql.DriverManager
 import java.time.Instant
@@ -19,7 +18,7 @@ abstract class CreateUserTask : DefaultTask() {
 
     @get:Input
     @get:Optional
-    abstract val password: Property<String>
+    abstract val passwordHash: Property<String>
 
     @get:Input
     abstract val dataDir: Property<String>
@@ -28,8 +27,14 @@ abstract class CreateUserTask : DefaultTask() {
     fun execute() {
         val user = username.orNull
             ?: throw GradleException("username が指定されていません。-Pusername=<name> を付けてください")
-        val pass = password.orNull
-            ?: throw GradleException("password が指定されていません。-Ppassword=<pass> を付けてください")
+        val hash = passwordHash.orNull
+            ?: throw GradleException(
+                "passwordHash が指定されていません。-PpasswordHash=<bcrypt-hash> を付けてください"
+            )
+
+        if (!BCRYPT_HASH_REGEX.matches(hash)) {
+            throw GradleException("passwordHash は bcrypt ハッシュを指定してください。/admin のハッシュ生成値を利用できます")
+        }
 
         val dbFile = resolveDatabaseFile(dataDir.get())
         dbFile.parentFile?.mkdirs()
@@ -67,7 +72,7 @@ abstract class CreateUserTask : DefaultTask() {
             ).use { statement ->
                 statement.setString(1, id)
                 statement.setString(2, user)
-                statement.setString(3, BCrypt.hashpw(pass, BCrypt.gensalt()))
+                statement.setString(3, hash)
                 statement.setLong(4, Instant.now().toEpochMilli())
                 statement.executeUpdate()
             }
@@ -80,5 +85,9 @@ abstract class CreateUserTask : DefaultTask() {
         val looksLikeFile = configured.exists() && configured.isFile ||
             configured.extension.lowercase() in setOf("db", "sqlite", "sqlite3")
         return if (looksLikeFile) configured else configured.resolve("shorturl.db")
+    }
+
+    companion object {
+        private val BCRYPT_HASH_REGEX = Regex("""^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$""")
     }
 }

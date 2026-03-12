@@ -27,4 +27,4 @@
 
 ## Useful Task
 
-- 管理ユーザー作成: `./gradlew :server:createUser -Pusername=<name> -Ppassword=<password>`
+- 管理ユーザー作成: `./gradlew :server:createUser -Pusername=<name> -PpasswordHash='<bcrypt-hash>'`

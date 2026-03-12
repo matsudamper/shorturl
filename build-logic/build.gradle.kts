@@ -7,7 +7,6 @@ repositories {
 }
 
 dependencies {
-    implementation("org.mindrot:jbcrypt:0.4")
     implementation("org.xerial:sqlite-jdbc:3.50.3.0")
 }
 

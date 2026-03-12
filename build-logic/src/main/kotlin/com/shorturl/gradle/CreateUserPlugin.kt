@@ -8,9 +8,9 @@ class CreateUserPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         project.tasks.register<CreateUserTask>("createUser") {
             group = "application"
-            description = "Creates an admin user in the SQLite datastore."
+            description = "Creates a user in the SQLite datastore from a bcrypt password hash."
             username.convention(project.providers.gradleProperty("username"))
-            password.convention(project.providers.gradleProperty("password"))
+            passwordHash.convention(project.providers.gradleProperty("passwordHash"))
             dataDir.convention(
                 project.providers.gradleProperty("dataDir")
                     .orElse(project.providers.environmentVariable("DATA_DIR"))

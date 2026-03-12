@@ -159,12 +159,6 @@ private fun UserCard(
             Text(user.username, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(4.dp))
             Text(
-                "作成: ${user.createdAt}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
                 "ID: ${user.id}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
