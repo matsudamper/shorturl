@@ -81,21 +81,75 @@ fun Application.module(config: AppConfig = AppConfig()) {
             call.respondText("OK")
         }
 
-        // 管理画面（Compose Wasm）
-        // ビルド: ./gradlew admin:wasmJsBrowserProductionWebpack
-        //         cp -r admin/build/dist/wasmJs/productionExecutable/ $ADMIN_DIST
-        val adminDir = File(config.adminDist)
-        if (adminDir.exists()) {
-            staticFiles("/admin", adminDir) {
-                default("index.html")
+        val externalAdminDir = config.adminDistDir
+        when {
+            externalAdminDir?.isDirectory == true -> {
+                staticFiles("/admin", externalAdminDir) {
+                    default("index.html")
+                }
+                val fontsDir = externalAdminDir.resolve("fonts")
+                if (fontsDir.isDirectory) {
+                    staticFiles("/fonts", fontsDir)
+                }
             }
-            val fontsDir = adminDir.resolve("fonts")
-            if (fontsDir.exists()) {
-                staticFiles("/fonts", fontsDir)
+
+            externalAdminDir != null -> {
+                environment.log.warn("ADMIN_DIST is not a readable directory: {}", externalAdminDir.absolutePath)
+                registerEmbeddedAdminResources()
             }
+
+            else -> registerEmbeddedAdminResources()
         }
 
         adminApiRoutes()
         redirectRoutes()
     }
 }
+
+private fun Routing.registerEmbeddedAdminResources() {
+    get("/admin") {
+        call.respondEmbeddedResource("admin/index.html")
+    }
+    get("/admin/{resourcePath...}") {
+        val relativePath = call.parameters.getAll("resourcePath").orEmpty().joinToString("/")
+        if (relativePath.isBlank()) {
+            call.respondEmbeddedResource("admin/index.html")
+            return@get
+        }
+        call.respondEmbeddedResource("admin/$relativePath")
+    }
+    get("/fonts/{resourcePath...}") {
+        val relativePath = call.parameters.getAll("resourcePath").orEmpty().joinToString("/")
+        if (relativePath.isBlank()) {
+            call.respond(HttpStatusCode.NotFound)
+            return@get
+        }
+        call.respondEmbeddedResource("admin/fonts/$relativePath")
+    }
+}
+
+private suspend fun ApplicationCall.respondEmbeddedResource(resourcePath: String) {
+    val normalizedPath = resourcePath.trimStart('/').replace('\\', '/')
+    val resourceStream = application.environment.classLoader.getResourceAsStream(normalizedPath)
+        ?: run {
+            application.environment.log.warn("Embedded resource not found: {}", normalizedPath)
+            respond(HttpStatusCode.NotFound)
+            return
+        }
+
+    resourceStream.use { stream ->
+        respondBytes(stream.readBytes(), contentTypeForResourcePath(normalizedPath))
+    }
+}
+
+private fun contentTypeForResourcePath(resourcePath: String): ContentType =
+    when (resourcePath.substringAfterLast('.', "")) {
+        "html" -> ContentType.Text.Html.withCharset(Charsets.UTF_8)
+        "js", "mjs" -> ContentType.Application.JavaScript.withCharset(Charsets.UTF_8)
+        "map", "json" -> ContentType.Application.Json.withCharset(Charsets.UTF_8)
+        "wasm" -> ContentType.parse("application/wasm")
+        "css" -> ContentType.Text.CSS.withCharset(Charsets.UTF_8)
+        "ttf" -> ContentType.parse("font/ttf")
+        "txt" -> ContentType.Text.Plain.withCharset(Charsets.UTF_8)
+        else -> ContentType.Application.OctetStream
+    }

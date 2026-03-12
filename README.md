@@ -20,21 +20,25 @@
 ./gradlew build
 ```
 
-管理画面を本番用アセットとしてビルドする場合:
+`server` は admin 管理画面をビルド時に内包します。`-PserverBuildProfile=dev|prod` で同梱する管理画面アセットと成果物名を切り替えます。
+
+JVM の自己完結 JAR を作る場合:
 
 ```bash
-./gradlew :admin:wasmJsBrowserProductionWebpack
+./gradlew :server:shadowJar -PserverBuildProfile=prod
 ```
 
 生成物:
 
-- JVM サーバー成果物: `server/build/libs/`
-- 管理画面成果物: `admin/build/dist/wasmJs/productionExecutable/`
+- JVM サーバー成果物: `server/build/libs/server-prod-all.jar`
+- 通常 JAR: `server/build/libs/server-prod.jar`
 
 補足:
 
-- `server` は `ADMIN_DIST` 環境変数、または既定の `admin/build/dist/wasmJs/productionExecutable/` を見て `/admin` を配信します。
-- API とリダイレクト機能だけを確認したい場合は、管理画面をビルドしなくてもサーバーは起動できます。
+- `dev` を指定すると `admin` の development webpack 出力を、`prod` を指定すると production webpack 出力を内包します。
+- `./gradlew :server:run` の既定プロファイルは `dev` です。
+- 実行時に `ADMIN_DIST=/path/to/admin/dist` を指定すると、そのディレクトリを `/admin` と `/fonts` の配信元として埋め込みリソースより優先します。
+- `ADMIN_DIST` を付けて `:server:run` / `:server:nativeRun` を実行した場合、Gradle は admin の埋め込み生成を省くため、開発時の待ち時間を減らせます。
 
 ## GraalVM Native Image ビルド
 
@@ -44,16 +48,17 @@
 - Native Image が利用可能な状態であること
 - `native-image --version` が通ること
 
-管理画面も同梱して使う場合は、先に Wasm 側をビルドします。
-
 ```bash
-./gradlew :admin:wasmJsBrowserProductionWebpack
-./gradlew :server:nativeCompile
+./gradlew :server:nativeCompile -PserverBuildProfile=prod
 ```
 
 生成物:
 
-- ネイティブバイナリ: `server/build/native/nativeCompile/`
+- ネイティブバイナリ: `server/build/native/nativeCompile/shorturl-prod(.exe)`
+
+補足:
+
+- `nativeCompile` 実行時に対応する admin アセットも自動ビルドされ、native image のリソースへ埋め込まれます。
 
 
 ## 開発時の起動
@@ -62,6 +67,33 @@ JVM サーバーを Gradle から起動:
 
 ```bash
 ./gradlew :server:run
+```
+
+ネイティブ実行ファイルをビルドしてそのまま起動する場合:
+
+```bash
+./gradlew :server:nativeRun -PserverBuildProfile=dev
+./gradlew :server:nativeRun -PserverBuildProfile=prod
+```
+
+外部の admin ビルド結果を優先して使う場合:
+
+```bash
+ADMIN_DIST=./admin/build/dist/wasmJs/developmentExecutable ./gradlew :server:run
+ADMIN_DIST=./admin/build/dist/wasmJs/developmentExecutable ./gradlew :server:nativeRun -PserverBuildProfile=dev
+```
+
+本番相当の JVM JAR を作る場合:
+
+```bash
+./gradlew :server:shadowJar -PserverBuildProfile=prod
+```
+
+開発用 JAR / native binary を作る場合:
+
+```bash
+./gradlew :server:shadowJar -PserverBuildProfile=dev
+./gradlew :server:nativeCompile -PserverBuildProfile=dev
 ```
 
 環境変数は`AppConfig.kt`を参照

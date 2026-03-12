@@ -52,11 +52,42 @@ class ApplicationTest {
     // ────────────────────────────────────────────
 
     @Test
-    fun `GET admin returns 200 with default adminDist`() = testApplication {
-        val adminDist = java.io.File("admin/build/dist/wasmJs/productionExecutable").absolutePath
-        application { module(AppConfig(adminDist = adminDist)) }
+    fun `GET admin returns 200 from embedded resources`() = testApplication {
+        application { module() }
         val res = client.get("/admin/")
         assertEquals(HttpStatusCode.OK, res.status)
+    }
+
+    @Test
+    fun `GET admin font returns 200 from embedded resources`() = testApplication {
+        application { module() }
+        val res = client.get("/fonts/NotoSansJP-Regular.ttf")
+        assertEquals(HttpStatusCode.OK, res.status)
+    }
+
+    @Test
+    fun `GET admin javascript returns 200 from embedded resources`() = testApplication {
+        application { module() }
+        val res = client.get("/admin/admin.js")
+        assertEquals(HttpStatusCode.OK, res.status)
+    }
+
+    @Test
+    fun `GET admin prefers external adminDist when specified`() = testApplication {
+        val externalAdminDir = tempDir.resolve("admin-dist").apply { mkdirs() }
+        externalAdminDir.resolve("index.html").writeText("external-admin", Charsets.UTF_8)
+        externalAdminDir.resolve("fonts").mkdirs()
+        externalAdminDir.resolve("fonts").resolve("NotoSansJP-Regular.ttf").writeText("external-font", Charsets.UTF_8)
+
+        application { module(AppConfig(adminDist = externalAdminDir.absolutePath)) }
+
+        val adminRes = client.get("/admin/")
+        assertEquals(HttpStatusCode.OK, adminRes.status)
+        assertEquals("external-admin", adminRes.bodyAsText())
+
+        val fontRes = client.get("/fonts/NotoSansJP-Regular.ttf")
+        assertEquals(HttpStatusCode.OK, fontRes.status)
+        assertEquals("external-font", fontRes.bodyAsText())
     }
 
     // ────────────────────────────────────────────
