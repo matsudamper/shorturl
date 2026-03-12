@@ -1,4 +1,5 @@
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -13,10 +14,6 @@ import io.ktor.client.engine.js.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
-import kotlin.coroutines.coroutineContext
 
 
 private val LocalCustomFontsFlow = staticCompositionLocalOf {
@@ -26,46 +23,44 @@ private val LocalCustomFontsFlow = staticCompositionLocalOf {
 @Stable
 private class LocalCustomFontsState {
     private var isLoading = false
-    private val fontsFlow = MutableStateFlow<Map<FontSet, Font>>(mapOf())
     var fontFamily: FontFamily by mutableStateOf(FontFamily.Default)
+    var isReady: Boolean by mutableStateOf(false)
+    private val httpClient = HttpClient(Js)
 
-    suspend fun load() {
-        if (isLoading) return
+    suspend fun load(fontFamilyResolver: FontFamily.Resolver) {
+        if (isLoading || isReady) return
         isLoading = true
-        CoroutineScope(Job() + coroutineContext).launch {
-            while (isActive) delay(100)
-            isLoading = false
-        }
-        fonts
-            .filter { it !in fontsFlow.value.keys }
-            .forEach { fontSet ->
-                runCatching {
-                    HttpClient(Js) {
-//                        install(Logging) {
-//                            logger = Logger.EMPTY
-//                            level = LogLevel.NONE
-//                        }
-                    }.get(Url("/fonts/${fontSet.fileName}"))
-                }.onFailure {
-                    it.printStackTrace()
-                }.onSuccess { response ->
-                    val byteArray = response.readRawBytes()
-                    fontsFlow.update {
-                        it.plus(
-                            fontSet to
-                                    Font(
-                                        identity = fontSet.fileName,
-                                        data = byteArray,
-                                        weight = fontSet.weight,
-                                        style = fontSet.style,
-                                    ),
-                        )
-                    }
-                    fontFamily = FontFamily(
-                        fontsFlow.value.values.toList(),
-                    )
+        try {
+            val textFonts = buildList {
+                for (fontSet in textFontSets) {
+                    loadFont(fontSet)?.let(::add)
                 }
             }
+            if (textFonts.isNotEmpty()) {
+                fontFamily = FontFamily(textFonts)
+            }
+
+            loadFont(emojiFontSet)?.let { emojiFont ->
+                fontFamilyResolver.preload(FontFamily(listOf(emojiFont)))
+            }
+        } finally {
+            isReady = true
+            isLoading = false
+        }
+    }
+
+    private suspend fun loadFont(fontSet: FontSet): Font? {
+        return runCatching {
+            val response = httpClient.get(Url("/fonts/${fontSet.fileName}"))
+            Font(
+                identity = fontSet.fileName,
+                data = response.readRawBytes(),
+                weight = fontSet.weight,
+                style = fontSet.style,
+            )
+        }.onFailure {
+            it.printStackTrace()
+        }.getOrNull()
     }
 
     private data class FontSet(
@@ -74,8 +69,7 @@ private class LocalCustomFontsState {
         val style: FontStyle,
     )
 
-    private val fonts: List<FontSet> = listOf(
-        FontSet("NotoColorEmoji-Regular.ttf", FontWeight.Normal, FontStyle.Normal),
+    private val textFontSets: List<FontSet> = listOf(
         FontSet("NotoSansJP-Medium.ttf", FontWeight.Medium, FontStyle.Normal),
         FontSet("NotoSansJP-Bold.ttf", FontWeight.Bold, FontStyle.Normal),
         FontSet("NotoSansJP-Regular.ttf", FontWeight.W400, FontStyle.Normal),
@@ -86,19 +80,35 @@ private class LocalCustomFontsState {
         FontSet("NotoSansJP-SemiBold.ttf", FontWeight.SemiBold, FontStyle.Normal),
         FontSet("NotoSansJP-Thin.ttf", FontWeight.Thin, FontStyle.Normal),
     )
+
+    private val emojiFontSet = FontSet(
+        fileName = "NotoColorEmoji-Regular.ttf",
+        weight = FontWeight.Normal,
+        style = FontStyle.Normal,
+    )
 }
 
 @Composable
 public fun rememberCustomFontFamily(): FontFamily {
-    val fontsFlow: LocalCustomFontsState = LocalCustomFontsFlow.current
-
-    LaunchedEffect(Unit) {
-        fontsFlow.load()
-    }
-    return fontsFlow.fontFamily
+    return rememberCustomFontState().fontFamily
 }
 
+@Immutable
+public data class CustomFontState(
+    val fontFamily: FontFamily,
+    val isReady: Boolean,
+)
+
 @Composable
-public fun rememberFontFamilyResolver(): FontFamily.Resolver {
-    return remember { androidx.compose.ui.text.font.createFontFamilyResolver() }
+public fun rememberCustomFontState(): CustomFontState {
+    val fontsFlow: LocalCustomFontsState = LocalCustomFontsFlow.current
+    val fontFamilyResolver = LocalFontFamilyResolver.current
+
+    LaunchedEffect(fontFamilyResolver) {
+        fontsFlow.load(fontFamilyResolver)
+    }
+    return CustomFontState(
+        fontFamily = fontsFlow.fontFamily,
+        isReady = fontsFlow.isReady,
+    )
 }

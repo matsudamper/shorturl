@@ -24,7 +24,7 @@ fun LoginScreen(onLoggedIn: () -> Unit, onHashGenerator: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.width(360.dp).padding(24.dp),
         ) {
-            Text("ShortURL 管理画面", style = MaterialTheme.typography.headlineMedium)
+            Text("ShortURL 管理画面 ⚙\uFE0F", style = MaterialTheme.typography.headlineMedium)
 
             OutlinedTextField(
                 value = username,
