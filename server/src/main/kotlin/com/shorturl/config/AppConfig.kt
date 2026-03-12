@@ -5,8 +5,10 @@ import java.io.File
 private val DEV_SECRET = "shorturl-dev-secret-key-32bytes!!"
 
 private val ADMIN_DIST_CANDIDATES = listOf(
+    "./admin/build/dist/wasmJs/developmentExecutable",
+    "../admin/build/dist/wasmJs/developmentExecutable", // ./gradlew :admin:wasmJsBrowserDevelopmentExecutableDistribution
     "./admin/build/dist/wasmJs/productionExecutable",
-    "../admin/build/dist/wasmJs/productionExecutable",
+    "../admin/build/dist/wasmJs/productionExecutable", // ./gradlew :admin:wasmJsBrowserDistribution
 )
 
 private fun defaultAdminDist(): String =
