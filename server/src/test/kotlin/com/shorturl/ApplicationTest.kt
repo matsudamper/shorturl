@@ -400,7 +400,19 @@ class ApplicationTest {
     @Test
     fun `redirect to nonexistent slug returns 404`() = testApplication {
         application { module() }
-        assertEquals(HttpStatusCode.NotFound, rawClient().get("/doesnotexist").status)
+        val res = rawClient().get("/doesnotexist")
+        assertEquals(HttpStatusCode.NotFound, res.status)
+        assertEquals(ContentType.Text.Html, res.contentType()?.withoutParameters())
+        assertTrue(res.bodyAsText().contains("Page Not Found"))
+    }
+
+    @Test
+    fun `root returns 404 page`() = testApplication {
+        application { module() }
+        val res = rawClient().get("/")
+        assertEquals(HttpStatusCode.NotFound, res.status)
+        assertEquals(ContentType.Text.Html, res.contentType()?.withoutParameters())
+        assertTrue(res.bodyAsText().contains("Requested path: /"))
     }
 
     @Test

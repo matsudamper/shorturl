@@ -128,7 +128,10 @@ private fun Routing.registerEmbeddedAdminResources() {
     }
 }
 
-private suspend fun ApplicationCall.respondEmbeddedResource(resourcePath: String) {
+suspend fun ApplicationCall.respondEmbeddedResource(
+    resourcePath: String,
+    status: HttpStatusCode = HttpStatusCode.OK,
+) {
     val normalizedPath = resourcePath.trimStart('/').replace('\\', '/')
     val resourceStream = application.environment.classLoader.getResourceAsStream(normalizedPath)
         ?: run {
@@ -138,7 +141,7 @@ private suspend fun ApplicationCall.respondEmbeddedResource(resourcePath: String
         }
 
     resourceStream.use { stream ->
-        respondBytes(stream.readBytes(), contentTypeForResourcePath(normalizedPath))
+        respondBytes(stream.readBytes(), contentTypeForResourcePath(normalizedPath), status)
     }
 }
 

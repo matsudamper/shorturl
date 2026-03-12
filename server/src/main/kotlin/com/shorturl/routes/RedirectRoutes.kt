@@ -1,5 +1,6 @@
 package com.shorturl.routes
 
+import com.shorturl.respondNotFoundPage
 import com.shorturl.repository.AccessLogRepository
 import com.shorturl.repository.UrlRepository
 import com.shorturl.service.GeoIpService
@@ -11,9 +12,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.redirectRoutes() {
+    get("/") {
+        call.respondNotFoundPage()
+    }
+
     get("/{slug}") {
         val rawSlug = call.parameters["slug"] ?: run {
-            call.respond(HttpStatusCode.NotFound, "Not Found")
+            call.respondNotFoundPage()
             return@get
         }
         val decodedSlug = runCatching { java.net.URLDecoder.decode(rawSlug, Charsets.UTF_8) }.getOrElse { rawSlug }
@@ -21,7 +26,7 @@ fun Route.redirectRoutes() {
         val shortened = UrlRepository.findBySlug(rawSlug)
             ?: UrlRepository.findBySlug(decodedSlug)
             ?: run {
-                call.respond(HttpStatusCode.NotFound, "短縮URLが見つかりませんでした")
+                call.respondNotFoundPage()
                 return@get
             }
 
@@ -38,6 +43,16 @@ fun Route.redirectRoutes() {
         )
 
         call.respondRedirect(shortened.originalUrl, permanent = true)
+    }
+
+    get("{...}") {
+        val path = call.request.path()
+        val looksLikeAsset = path.substringAfterLast('/').contains('.')
+        if (path.startsWith("/admin") || path.startsWith("/fonts") || looksLikeAsset) {
+            call.respondText("Not Found", status = HttpStatusCode.NotFound)
+            return@get
+        }
+        call.respondNotFoundPage()
     }
 }
 
