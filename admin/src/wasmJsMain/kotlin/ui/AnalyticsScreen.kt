@@ -10,26 +10,58 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import api.ApiClient
+import api.isUnauthorizedApiError
 import model.AnalyticsSummary
 
 @Composable
-fun AnalyticsScreen(urlId: String, slug: String, onBack: () -> Unit) {
+fun AnalyticsScreen(
+    urlId: String,
+    onBack: () -> Unit,
+    onUnauthorized: () -> Unit,
+) {
     var summary by remember { mutableStateOf<AnalyticsSummary?>(null) }
+    var slug by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
 
     LaunchedEffect(urlId) {
-        ApiClient.getAnalytics(urlId).fold(
-            onSuccess = { summary = it },
-            onFailure = { error = it.message ?: "エラー" },
+        loading = true
+        error = ""
+        summary = null
+        slug = null
+        var unauthorized = false
+        ApiClient.getUrl(urlId).fold(
+            onSuccess = { slug = it.slug },
+            onFailure = {
+                if (it.isUnauthorizedApiError()) {
+                    unauthorized = true
+                    onUnauthorized()
+                } else {
+                    error = it.message ?: "URL取得エラー"
+                }
+            },
         )
+        if (!unauthorized && error.isBlank()) {
+            ApiClient.getAnalytics(urlId).fold(
+                onSuccess = { summary = it },
+                onFailure = {
+                    if (it.isUnauthorizedApiError()) {
+                        unauthorized = true
+                        onUnauthorized()
+                    } else {
+                        error = it.message ?: "エラー"
+                    }
+                },
+            )
+        }
         loading = false
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("← 戻る") }
-            Text("アクセス解析: /$slug", style = MaterialTheme.typography.headlineSmall)
+            val title = slug?.let { "アクセス解析: /$it" } ?: "アクセス解析"
+            Text(title, style = MaterialTheme.typography.headlineSmall)
         }
 
         Spacer(Modifier.height(16.dp))

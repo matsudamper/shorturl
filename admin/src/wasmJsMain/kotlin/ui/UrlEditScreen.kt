@@ -7,15 +7,44 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import api.ApiClient
+import api.isUnauthorizedApiError
 import kotlinx.coroutines.launch
 import model.ShortenedUrl
 
 @Composable
-fun UrlEditScreen(url: ShortenedUrl, onBack: () -> Unit, onSaved: () -> Unit) {
+fun UrlEditScreen(
+    urlId: String,
+    onBack: () -> Unit,
+    onSaved: () -> Unit,
+    onUnauthorized: () -> Unit,
+) {
     val scope = rememberCoroutineScope()
-    var newUrl by remember { mutableStateOf(url.originalUrl) }
+    var url by remember { mutableStateOf<ShortenedUrl?>(null) }
+    var newUrl by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(true) }
     var saving by remember { mutableStateOf(false) }
+
+    LaunchedEffect(urlId) {
+        loading = true
+        error = ""
+        url = null
+        newUrl = ""
+        ApiClient.getUrl(urlId).fold(
+            onSuccess = {
+                url = it
+                newUrl = it.originalUrl
+            },
+            onFailure = {
+                if (it.isUnauthorizedApiError()) {
+                    onUnauthorized()
+                } else {
+                    error = it.message ?: "読込エラー"
+                }
+            },
+        )
+        loading = false
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -25,8 +54,26 @@ fun UrlEditScreen(url: ShortenedUrl, onBack: () -> Unit, onSaved: () -> Unit) {
 
         Spacer(Modifier.height(16.dp))
 
+        if (loading) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Column
+        }
+
+        val currentUrl = url
+        if (currentUrl == null) {
+            if (error.isNotBlank()) {
+                Text(error, color = MaterialTheme.colorScheme.error)
+            }
+            return@Column
+        }
+
         OutlinedTextField(
-            value = "/${url.slug}",
+            value = "/${currentUrl.slug}",
             onValueChange = {},
             label = { Text("スラッグ（変更不可）") },
             readOnly = true,
@@ -62,14 +109,20 @@ fun UrlEditScreen(url: ShortenedUrl, onBack: () -> Unit, onSaved: () -> Unit) {
                 scope.launch {
                     saving = true
                     error = ""
-                    ApiClient.updateUrl(url.id, newUrl).fold(
+                    ApiClient.updateUrl(currentUrl.id, newUrl).fold(
                         onSuccess = { onSaved() },
-                        onFailure = { error = it.message ?: "保存エラー" },
+                        onFailure = {
+                            if (it.isUnauthorizedApiError()) {
+                                onUnauthorized()
+                            } else {
+                                error = it.message ?: "保存エラー"
+                            }
+                        },
                     )
                     saving = false
                 }
             },
-            enabled = !saving && newUrl.isNotBlank() && newUrl != url.originalUrl,
+            enabled = !saving && newUrl.isNotBlank() && newUrl != currentUrl.originalUrl,
             modifier = Modifier.fillMaxWidth(),
         ) { Text(if (saving) "保存中..." else "保存") }
     }

@@ -73,6 +73,26 @@ class ApplicationTest {
     }
 
     @Test
+    fun `GET admin SPA route returns embedded index`() = testApplication {
+        application { module() }
+
+        val listRes = client.get("/admin/urls")
+        assertEquals(HttpStatusCode.OK, listRes.status)
+        assertTrue(listRes.bodyAsText().contains("admin.js"))
+
+        val editRes = client.get("/admin/urls/test-id/edit")
+        assertEquals(HttpStatusCode.OK, editRes.status)
+        assertTrue(editRes.bodyAsText().contains("admin.js"))
+    }
+
+    @Test
+    fun `GET missing admin asset returns 404`() = testApplication {
+        application { module() }
+        val res = client.get("/admin/missing.js")
+        assertEquals(HttpStatusCode.NotFound, res.status)
+    }
+
+    @Test
     fun `GET admin prefers external adminDist when specified`() = testApplication {
         val externalAdminDir = tempDir.resolve("admin-dist").apply { mkdirs() }
         externalAdminDir.resolve("index.html").writeText("external-admin", Charsets.UTF_8)
@@ -84,6 +104,10 @@ class ApplicationTest {
         val adminRes = client.get("/admin/")
         assertEquals(HttpStatusCode.OK, adminRes.status)
         assertEquals("external-admin", adminRes.bodyAsText())
+
+        val spaRes = client.get("/admin/users")
+        assertEquals(HttpStatusCode.OK, spaRes.status)
+        assertEquals("external-admin", spaRes.bodyAsText())
 
         val fontRes = client.get("/fonts/NotoSansJP-Regular.ttf")
         assertEquals(HttpStatusCode.OK, fontRes.status)

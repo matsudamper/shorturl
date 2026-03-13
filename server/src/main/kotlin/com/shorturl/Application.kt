@@ -84,13 +84,7 @@ fun Application.module(config: AppConfig = AppConfig()) {
         val externalAdminDir = config.adminDistDir
         when {
             externalAdminDir?.isDirectory == true -> {
-                staticFiles("/admin", externalAdminDir) {
-                    default("index.html")
-                }
-                val fontsDir = externalAdminDir.resolve("fonts")
-                if (fontsDir.isDirectory) {
-                    staticFiles("/fonts", fontsDir)
-                }
+                registerExternalAdminResources(externalAdminDir)
             }
 
             externalAdminDir != null -> {
@@ -108,27 +102,82 @@ fun Application.module(config: AppConfig = AppConfig()) {
 
 private fun Routing.registerEmbeddedAdminResources() {
     get("/admin") {
-        call.respondEmbeddedResource("admin/index.html")
+        call.respondEmbeddedAdminResource("")
     }
     get("/admin/{resourcePath...}") {
         val relativePath = call.parameters.getAll("resourcePath").orEmpty().joinToString("/")
-        if (relativePath.isBlank()) {
-            call.respondEmbeddedResource("admin/index.html")
-            return@get
-        }
-        call.respondEmbeddedResource("admin/$relativePath")
+        call.respondEmbeddedAdminResource(relativePath)
     }
     get("/fonts/{resourcePath...}") {
         val relativePath = call.parameters.getAll("resourcePath").orEmpty().joinToString("/")
-        if (relativePath.isBlank()) {
+        val normalizedPath = normalizeAdminRelativePath(relativePath)
+        if (normalizedPath.isNullOrBlank()) {
             call.respond(HttpStatusCode.NotFound)
             return@get
         }
-        call.respondEmbeddedResource("admin/fonts/$relativePath")
+        call.respondEmbeddedResource("admin/fonts/$normalizedPath")
     }
 }
 
-suspend fun ApplicationCall.respondEmbeddedResource(
+private fun Routing.registerExternalAdminResources(externalAdminDir: File) {
+    get("/admin") {
+        call.respondExternalAdminResource(externalAdminDir, "")
+    }
+    get("/admin/{resourcePath...}") {
+        val relativePath = call.parameters.getAll("resourcePath").orEmpty().joinToString("/")
+        call.respondExternalAdminResource(externalAdminDir, relativePath)
+    }
+
+    val fontsDir = externalAdminDir.resolve("fonts")
+    if (fontsDir.isDirectory) {
+        staticFiles("/fonts", fontsDir)
+    }
+}
+
+private suspend fun ApplicationCall.respondEmbeddedAdminResource(relativePath: String) {
+    val normalizedPath = normalizeAdminRelativePath(relativePath)
+        ?: run {
+            respond(HttpStatusCode.NotFound)
+            return
+        }
+    val resourcePath = normalizedPath.takeIf { it.isNotBlank() }?.let { "admin/$it" } ?: "admin/index.html"
+    when {
+        embeddedResourceExists(resourcePath) -> respondEmbeddedResource(resourcePath)
+        shouldServeAdminIndex(normalizedPath) -> respondEmbeddedResource("admin/index.html")
+        else -> respond(HttpStatusCode.NotFound)
+    }
+}
+
+private suspend fun ApplicationCall.respondExternalAdminResource(
+    externalAdminDir: File,
+    relativePath: String,
+) {
+    val normalizedPath = normalizeAdminRelativePath(relativePath)
+        ?: run {
+            respond(HttpStatusCode.NotFound)
+            return
+        }
+    val requestedPath = normalizedPath.ifBlank { "index.html" }
+    val requestedFile = externalAdminDir.resolve(requestedPath)
+    if (requestedFile.isSafeChildOf(externalAdminDir) && requestedFile.isFile) {
+        respondExternalResource(requestedFile, requestedPath)
+        return
+    }
+    if (shouldServeAdminIndex(normalizedPath)) {
+        val indexFile = externalAdminDir.resolve("index.html")
+        if (indexFile.isSafeChildOf(externalAdminDir) && indexFile.isFile) {
+            respondExternalResource(indexFile, "index.html")
+            return
+        }
+    }
+    respond(HttpStatusCode.NotFound)
+}
+
+private suspend fun ApplicationCall.respondExternalResource(file: File, resourcePath: String) {
+    respondBytes(file.readBytes(), contentTypeForResourcePath(resourcePath))
+}
+
+internal suspend fun ApplicationCall.respondEmbeddedResource(
     resourcePath: String,
     status: HttpStatusCode = HttpStatusCode.OK,
 ) {
@@ -143,6 +192,35 @@ suspend fun ApplicationCall.respondEmbeddedResource(
     resourceStream.use { stream ->
         respondBytes(stream.readBytes(), contentTypeForResourcePath(normalizedPath), status)
     }
+}
+
+private fun ApplicationCall.embeddedResourceExists(resourcePath: String): Boolean {
+    val normalizedPath = resourcePath.trimStart('/').replace('\\', '/')
+    return application.environment.classLoader.getResource(normalizedPath) != null
+}
+
+private fun normalizeAdminRelativePath(relativePath: String): String? {
+    val normalizedPath = relativePath.trimStart('/').replace('\\', '/')
+    if (normalizedPath.isBlank()) {
+        return ""
+    }
+    if (normalizedPath.split('/').any { it == "." || it == ".." }) {
+        return null
+    }
+    return normalizedPath
+}
+
+private fun shouldServeAdminIndex(relativePath: String): Boolean {
+    if (relativePath.isBlank()) {
+        return true
+    }
+    return !relativePath.substringAfterLast('/').contains('.')
+}
+
+private fun File.isSafeChildOf(root: File): Boolean {
+    val rootPath = root.canonicalFile.toPath()
+    val filePath = canonicalFile.toPath()
+    return filePath.startsWith(rootPath)
 }
 
 private fun contentTypeForResourcePath(resourcePath: String): ContentType =

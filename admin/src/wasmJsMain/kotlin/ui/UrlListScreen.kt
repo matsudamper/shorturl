@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import api.ApiClient
+import api.isUnauthorizedApiError
 import kotlinx.coroutines.launch
 import model.ShortenedUrl
 
@@ -21,6 +22,7 @@ fun UrlListScreen(
     onEdit: (ShortenedUrl) -> Unit,
     onAnalytics: (ShortenedUrl) -> Unit,
     onLogout: () -> Unit,
+    onUnauthorized: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var urls by remember { mutableStateOf<List<ShortenedUrl>>(emptyList()) }
@@ -37,7 +39,13 @@ fun UrlListScreen(
             error = ""
             ApiClient.listUrls(offset, PAGE_SIZE, query.ifBlank { null }).fold(
                 onSuccess = { urls = it.items; total = it.total },
-                onFailure = { error = it.message ?: "エラー" },
+                onFailure = {
+                    if (it.isUnauthorizedApiError()) {
+                        onUnauthorized()
+                    } else {
+                        error = it.message ?: "エラー"
+                    }
+                },
             )
             loading = false
         }
@@ -116,7 +124,16 @@ fun UrlListScreen(
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
-                        ApiClient.deleteUrl(target.id).onSuccess { load() }
+                        ApiClient.deleteUrl(target.id).fold(
+                            onSuccess = { load() },
+                            onFailure = {
+                                if (it.isUnauthorizedApiError()) {
+                                    onUnauthorized()
+                                } else {
+                                    error = it.message ?: "削除エラー"
+                                }
+                            },
+                        )
                         deleteConfirm = null
                     }
                 }) { Text("削除", color = MaterialTheme.colorScheme.error) }

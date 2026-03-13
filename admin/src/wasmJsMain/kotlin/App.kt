@@ -4,21 +4,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
-import androidx.savedstate.serialization.SavedStateConfiguration
+import kotlinx.browser.window
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import model.ShortenedUrl
+import kotlin.js.ExperimentalWasmJsInterop
+import org.w3c.dom.events.Event
 import ui.*
 
-// ---- Route definitions ----
+private const val adminBasePath = "/admin"
+private const val adminLoginPath = "/admin/"
+
 @Serializable
 data object LoginRoute : NavKey
 
@@ -35,23 +38,15 @@ data object UserListRoute : NavKey
 data object UrlCreateRoute : NavKey
 
 @Serializable
-data class UrlEditRoute(val url: ShortenedUrl) : NavKey
+data class UrlEditRoute(val urlId: String) : NavKey
 
 @Serializable
-data class AnalyticsRoute(val urlId: String, val slug: String) : NavKey
+data class AnalyticsRoute(val urlId: String) : NavKey
 
-private val navConfig = SavedStateConfiguration {
-    serializersModule = SerializersModule {
-        polymorphic(NavKey::class) {
-            subclass(LoginRoute::class, LoginRoute.serializer())
-            subclass(HashGeneratorRoute::class, HashGeneratorRoute.serializer())
-            subclass(UrlListRoute::class, UrlListRoute.serializer())
-            subclass(UserListRoute::class, UserListRoute.serializer())
-            subclass(UrlCreateRoute::class, UrlCreateRoute.serializer())
-            subclass(UrlEditRoute::class, UrlEditRoute.serializer())
-            subclass(AnalyticsRoute::class, AnalyticsRoute.serializer())
-        }
-    }
+private enum class HistoryMode {
+    Push,
+    Replace,
+    None,
 }
 
 private fun createTypography(fontFamily: FontFamily): Typography {
@@ -75,10 +70,104 @@ private fun createTypography(fontFamily: FontFamily): Typography {
     )
 }
 
+private fun currentAdminPath(): String = window.location.pathname.ifBlank { adminLoginPath }
+
+private fun normalizeAdminPath(pathname: String): String {
+    val trimmed = pathname.trim().ifBlank { adminLoginPath }
+    if (trimmed == adminBasePath || trimmed == adminLoginPath) {
+        return adminLoginPath
+    }
+    if (!trimmed.startsWith("$adminBasePath/")) {
+        return adminLoginPath
+    }
+    return trimmed.trimEnd('/').ifBlank { adminLoginPath }
+}
+
+private fun routeStackFromPath(pathname: String): List<NavKey> {
+    val normalizedPath = normalizeAdminPath(pathname)
+    val segments = normalizedPath
+        .removePrefix(adminBasePath)
+        .split('/')
+        .filter { it.isNotBlank() }
+
+    return when {
+        segments.isEmpty() -> listOf(LoginRoute)
+        segments == listOf("hash-generator") -> listOf(LoginRoute, HashGeneratorRoute)
+        segments == listOf("urls") -> listOf(UrlListRoute)
+        segments == listOf("users") -> listOf(UrlListRoute, UserListRoute)
+        segments == listOf("urls", "new") -> listOf(UrlListRoute, UrlCreateRoute)
+        segments.size == 3 && segments[0] == "urls" && segments[2] == "edit" ->
+            listOf(UrlListRoute, UrlEditRoute(segments[1]))
+        segments.size == 3 && segments[0] == "urls" && segments[2] == "analytics" ->
+            listOf(UrlListRoute, AnalyticsRoute(segments[1]))
+        else -> listOf(LoginRoute)
+    }
+}
+
+private fun pathForRoute(route: NavKey): String =
+    when (route) {
+        LoginRoute -> adminLoginPath
+        HashGeneratorRoute -> "$adminBasePath/hash-generator"
+        UrlListRoute -> "$adminBasePath/urls"
+        UserListRoute -> "$adminBasePath/users"
+        UrlCreateRoute -> "$adminBasePath/urls/new"
+        is UrlEditRoute -> "$adminBasePath/urls/${route.urlId}/edit"
+        is AnalyticsRoute -> "$adminBasePath/urls/${route.urlId}/analytics"
+        else -> adminLoginPath
+    }
+
+
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun syncBrowserPath(path: String, mode: HistoryMode) {
+    when (mode) {
+        HistoryMode.Push -> {
+            if (currentAdminPath() == path) {
+                window.history.replaceState(null, "", path)
+            } else {
+                window.history.pushState(null, "", path)
+            }
+        }
+        HistoryMode.Replace -> window.history.replaceState(null, "", path)
+        HistoryMode.None -> Unit
+    }
+}
+
 @Composable
 fun App() {
-    val backStack = rememberNavBackStack(navConfig, LoginRoute)
+    val initialBackStack = remember { routeStackFromPath(currentAdminPath()) }
+    val backStack = remember { NavBackStack<NavKey>(*initialBackStack.toTypedArray()) }
     val fontState = rememberCustomFontState()
+
+    fun push(route: NavKey) {
+        backStack.add(route)
+        syncBrowserPath(pathForRoute(route), HistoryMode.Push)
+    }
+
+    fun pop() {
+        if (backStack.size > 1) {
+            backStack.removeLastOrNull()
+            syncBrowserPath(pathForRoute(backStack.lastOrNull() ?: LoginRoute), HistoryMode.Replace)
+        }
+    }
+
+    fun resetTo(route: NavKey) {
+        backStack.clear()
+        backStack.add(route)
+        syncBrowserPath(pathForRoute(route), HistoryMode.Replace)
+    }
+
+    DisposableEffect(backStack) {
+        syncBrowserPath(pathForRoute(backStack.lastOrNull() ?: LoginRoute), HistoryMode.Replace)
+        val listener: (Event) -> Unit = {
+            val routes = routeStackFromPath(currentAdminPath())
+            backStack.clear()
+            backStack.addAll(routes)
+        }
+        window.addEventListener(type = "popstate", callback = listener)
+        onDispose {
+            window.removeEventListener(type = "popstate", callback = listener)
+        }
+    }
 
     if (!fontState.isReady) {
         MaterialTheme {
@@ -95,59 +184,56 @@ fun App() {
     MaterialTheme(typography = createTypography(fontState.fontFamily)) {
         NavDisplay(
             backStack = backStack,
-            onBack = { backStack.removeLastOrNull() },
+            onBack = { pop() },
         ) { key: NavKey ->
             when (key) {
                 LoginRoute -> NavEntry(key) {
                     LoginScreen(
-                        onLoggedIn = { backStack.add(UrlListRoute) },
-                        onHashGenerator = { backStack.add(HashGeneratorRoute) },
+                        onLoggedIn = { resetTo(UrlListRoute) },
+                        onHashGenerator = { push(HashGeneratorRoute) },
                     )
                 }
                 HashGeneratorRoute -> NavEntry(key) {
                     HashGeneratorScreen(
-                        onBack = { backStack.removeLastOrNull() },
+                        onBack = { pop() },
                     )
                 }
                 UrlListRoute -> NavEntry(key) {
                     UrlListScreen(
-                        onCreateNew = { backStack.add(UrlCreateRoute) },
-                        onManageUsers = { backStack.add(UserListRoute) },
-                        onEdit = { backStack.add(UrlEditRoute(it)) },
-                        onAnalytics = { backStack.add(AnalyticsRoute(it.id, it.slug)) },
-                        onLogout = {
-                            backStack.removeAll { true }
-                            backStack.add(LoginRoute)
-                        },
+                        onCreateNew = { push(UrlCreateRoute) },
+                        onManageUsers = { push(UserListRoute) },
+                        onEdit = { push(UrlEditRoute(it.id)) },
+                        onAnalytics = { push(AnalyticsRoute(it.id)) },
+                        onLogout = { resetTo(LoginRoute) },
+                        onUnauthorized = { resetTo(LoginRoute) },
                     )
                 }
                 UserListRoute -> NavEntry(key) {
                     UserListScreen(
-                        onBack = { backStack.removeLastOrNull() },
-                        onLoggedOut = {
-                            backStack.removeAll { true }
-                            backStack.add(LoginRoute)
-                        },
+                        onBack = { pop() },
+                        onLoggedOut = { resetTo(LoginRoute) },
                     )
                 }
                 UrlCreateRoute -> NavEntry(key) {
                     UrlCreateScreen(
-                        onBack = { backStack.removeLastOrNull() },
-                        onCreated = { backStack.removeLastOrNull() },
+                        onBack = { pop() },
+                        onCreated = { pop() },
+                        onUnauthorized = { resetTo(LoginRoute) },
                     )
                 }
                 is UrlEditRoute -> NavEntry(key) {
                     UrlEditScreen(
-                        url = key.url,
-                        onBack = { backStack.removeLastOrNull() },
-                        onSaved = { backStack.removeLastOrNull() },
+                        urlId = key.urlId,
+                        onBack = { pop() },
+                        onSaved = { pop() },
+                        onUnauthorized = { resetTo(LoginRoute) },
                     )
                 }
                 is AnalyticsRoute -> NavEntry(key) {
                     AnalyticsScreen(
                         urlId = key.urlId,
-                        slug = key.slug,
-                        onBack = { backStack.removeLastOrNull() },
+                        onBack = { pop() },
+                        onUnauthorized = { resetTo(LoginRoute) },
                     )
                 }
                 else -> NavEntry(key) {}

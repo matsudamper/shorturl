@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import api.ApiClient
+import api.isUnauthorizedApiError
 import kotlinx.coroutines.launch
 import model.UserSummary
 
@@ -49,7 +50,13 @@ fun UserListScreen(
             error = ""
             ApiClient.listUsers().fold(
                 onSuccess = { users = it },
-                onFailure = { error = it.message ?: "エラー" },
+                onFailure = {
+                    if (it.isUnauthorizedApiError()) {
+                        onLoggedOut()
+                    } else {
+                        error = it.message ?: "エラー"
+                    }
+                },
             )
             loading = false
         }
@@ -125,8 +132,12 @@ fun UserListScreen(
                                     }
                                 },
                                 onFailure = {
-                                    error = it.message ?: "削除エラー"
-                                    deletingUserId = null
+                                    if (it.isUnauthorizedApiError()) {
+                                        onLoggedOut()
+                                    } else {
+                                        error = it.message ?: "削除エラー"
+                                        deletingUserId = null
+                                    }
                                 },
                             )
                         }
