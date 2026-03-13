@@ -18,11 +18,10 @@ plugins {
 }
 
 val serverBuildProfile = providers.gradleProperty("serverBuildProfile")
-    .orElse("dev")
+    .orElse("")
     .map(String::trim)
     .map(String::lowercase)
 
-val resolvedServerBuildProfile get() = serverBuildProfile.get()
 val externalAdminDist = providers.environmentVariable("ADMIN_DIST")
     .orNull
     ?.trim()
@@ -33,31 +32,41 @@ val runLikeTaskNames = setOf("run", "nativeRun", "runShadow", "runFatJar")
 val artifactTaskNames = setOf("jar", "shadowJar", "buildFatJar", "nativeCompile", "assemble", "build")
 val skipEmbeddedAdminResourcesForLocalRun =
     externalAdminDist != null &&
-        requestedTaskNames.any { it in runLikeTaskNames } &&
-        requestedTaskNames.none { it in artifactTaskNames }
+            requestedTaskNames.any { it in runLikeTaskNames } &&
+            requestedTaskNames.none { it in artifactTaskNames }
 
-val adminWebpackTaskName = when (resolvedServerBuildProfile) {
-    "prod" -> "wasmJsBrowserDistribution"
-    "dev" -> "wasmJsBrowserDevelopmentExecutableDistribution"
-    else -> throw GradleException(
-        "Unsupported serverBuildProfile=$resolvedServerBuildProfile. Use -PserverBuildProfile=dev or -PserverBuildProfile=prod."
-    )
+val adminWebpackTask = provider {
+    val adminWebpackTaskName = when (val profile = serverBuildProfile.get()) {
+        "prod" -> "wasmJsBrowserDistribution"
+        "dev" -> "wasmJsBrowserDevelopmentExecutableDistribution"
+        "" -> return@provider null
+        else -> throw GradleException(
+            "Unsupported serverBuildProfile=$profile. Use -PserverBuildProfile=dev or -PserverBuildProfile=prod."
+        )
+    }
+    project(":admin").tasks.named(adminWebpackTaskName)
 }
 
-val adminDistDirectory = when (resolvedServerBuildProfile) {
-    "prod" -> "productionExecutable"
-    "dev" -> "developmentExecutable"
-    else -> error("Unreachable")
+val adminDistDirectory = provider {
+    val adminDistDirectory = when (serverBuildProfile.get()) {
+        "prod" -> "productionExecutable"
+        "dev" -> "developmentExecutable"
+        else -> return@provider null
+    }
+    project(":admin").layout.buildDirectory.dir("dist/wasmJs/$adminDistDirectory")
 }
 
 val embedAdminResources by tasks.registering(Sync::class) {
-    description = "Builds the admin UI for '$resolvedServerBuildProfile' and embeds it into the server resources."
-    dependsOn(project(":admin").tasks.named(adminWebpackTaskName))
-    into(layout.buildDirectory.dir("generated/admin-resources/$resolvedServerBuildProfile"))
-    from(project(":admin").layout.buildDirectory.dir("dist/wasmJs/$adminDistDirectory")) {
+    description = "Builds the admin UI for '${serverBuildProfile.get()}' and embeds it into the server resources."
+    dependsOn(adminWebpackTask)
+    val serverProfile = serverBuildProfile.get().ifBlank { null }
+    if (serverProfile != null) {
+        into(layout.buildDirectory.dir("generated/admin-resources/${serverProfile}"))
+        inputs.property("serverBuildProfile", serverProfile)
+    }
+    from(adminDistDirectory) {
         into("admin")
     }
-    inputs.property("serverBuildProfile", resolvedServerBuildProfile)
 }
 
 sourceSets.named("main") {
@@ -69,7 +78,12 @@ sourceSets.named("main") {
 application {
     mainClass.set("com.shorturl.ApplicationKt")
     applicationDefaultJvmArgs = listOf(
-        "-Dio.ktor.development=${resolvedServerBuildProfile == "dev"}",
+        "-Dio.ktor.development=${
+            when (serverBuildProfile.get()) {
+                "dev", "" -> true
+                else -> false
+            }
+        }",
         "--enable-native-access=ALL-UNNAMED",
     )
 }
@@ -126,7 +140,7 @@ graalvmNative {
     binaries {
         named("main") {
             mainClass.set("com.shorturl.ApplicationKt")
-            imageName.set("shorturl-$resolvedServerBuildProfile")
+            imageName.set("shorturl-${serverBuildProfile.get()}")
             buildArgs.addAll(
                 "--no-fallback",
                 "-H:+ReportExceptionStackTraces",
@@ -149,11 +163,11 @@ tasks.named<Test>("test") {
 }
 
 tasks.named<Jar>("jar") {
-    archiveClassifier.set(resolvedServerBuildProfile)
+    archiveClassifier.set(serverBuildProfile.get())
 }
 
 tasks.named<ShadowJar>("shadowJar") {
-    archiveFileName.set("${project.name}-$resolvedServerBuildProfile-all.jar")
+    archiveFileName.set("${project.name}-${serverBuildProfile.get()}-all.jar")
 }
 
 // Workaround: https://github.com/gradle/gradle/issues/28583
