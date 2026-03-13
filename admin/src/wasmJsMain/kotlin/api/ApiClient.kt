@@ -26,6 +26,13 @@ object ApiClient {
 
     private const val BASE = "/internal"
 
+    suspend fun checkSession(): Boolean {
+        val res = client.get("$BASE/urls") {
+            parameter("limit", 1)
+        }
+        return res.status.isSuccess()
+    }
+
     suspend fun login(username: String, password: String): String? {
         val res = client.post("$BASE/auth/login") {
             contentType(ContentType.Application.Json)

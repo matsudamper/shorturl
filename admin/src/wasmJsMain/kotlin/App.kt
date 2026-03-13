@@ -5,7 +5,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -13,6 +17,7 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
+import api.ApiClient
 import kotlinx.browser.window
 import kotlinx.serialization.Serializable
 import kotlin.js.ExperimentalWasmJsInterop
@@ -137,6 +142,9 @@ fun App() {
     val initialBackStack = remember { routeStackFromPath(currentAdminPath()) }
     val backStack = remember { NavBackStack<NavKey>(*initialBackStack.toTypedArray()) }
     val fontState = rememberCustomFontState()
+    var sessionChecking by remember {
+        mutableStateOf(initialBackStack == listOf(LoginRoute))
+    }
 
     fun push(route: NavKey) {
         backStack.add(route)
@@ -169,7 +177,19 @@ fun App() {
         }
     }
 
-    if (!fontState.isReady) {
+    LaunchedEffect(fontState.isReady) {
+        if (!fontState.isReady) return@LaunchedEffect
+        if (!sessionChecking) return@LaunchedEffect
+        val authenticated = ApiClient.checkSession()
+        if (authenticated) {
+            backStack.clear()
+            backStack.add(UrlListRoute)
+            syncBrowserPath(pathForRoute(UrlListRoute), HistoryMode.Replace)
+        }
+        sessionChecking = false
+    }
+
+    if (!fontState.isReady || sessionChecking) {
         MaterialTheme {
             Box(
                 modifier = Modifier.fillMaxSize(),
