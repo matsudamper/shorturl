@@ -182,6 +182,7 @@ dependencies {
     implementation(libs.maxmind.db)
     implementation(libs.opentelemetry.ktor)
     implementation(libs.opentelemetry.sdk.autoconfigure)
+    implementation(libs.opentelemetry.exporter.otlp)
     implementation(libs.opentelemetry.semconv)
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.client.content.negotiation)
