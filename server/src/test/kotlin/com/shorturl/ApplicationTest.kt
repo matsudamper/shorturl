@@ -21,9 +21,11 @@ import kotlin.test.*
 class ApplicationTest {
 
     private val tempDir = Files.createTempDirectory("shorturl-test").toFile()
+    private lateinit var testConfig: AppConfig
 
     @BeforeTest
     fun setup() {
+        testConfig = AppConfig(sessionSecret = "test-secret-key-for-testing-only-32ch")
         AppDatabase.init(tempDir.absolutePath)
         GeoIpService.init("nonexistent") // ファイルなし → no-op
         UserRepository.create("admin", AuthService.hashPassword("password"))
@@ -41,7 +43,7 @@ class ApplicationTest {
 
     @Test
     fun `GET healthz returns OK`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = client.get("/healthz")
         assertEquals(HttpStatusCode.OK, res.status)
         assertEquals("OK", res.body<String>())
@@ -53,28 +55,28 @@ class ApplicationTest {
 
     @Test
     fun `GET admin returns 200 from embedded resources`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = client.get("/admin/")
         assertEquals(HttpStatusCode.OK, res.status)
     }
 
     @Test
     fun `GET admin font returns 200 from embedded resources`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = client.get("/fonts/NotoSansJP-Regular.ttf")
         assertEquals(HttpStatusCode.OK, res.status)
     }
 
     @Test
     fun `GET admin javascript returns 200 from embedded resources`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = client.get("/admin/admin.js")
         assertEquals(HttpStatusCode.OK, res.status)
     }
 
     @Test
     fun `GET admin SPA route returns embedded index`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
 
         val listRes = client.get("/admin/urls")
         assertEquals(HttpStatusCode.OK, listRes.status)
@@ -87,7 +89,7 @@ class ApplicationTest {
 
     @Test
     fun `GET missing admin asset returns 404`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = client.get("/admin/missing.js")
         assertEquals(HttpStatusCode.NotFound, res.status)
     }
@@ -99,7 +101,7 @@ class ApplicationTest {
         externalAdminDir.resolve("fonts").mkdirs()
         externalAdminDir.resolve("fonts").resolve("NotoSansJP-Regular.ttf").writeText("external-font", Charsets.UTF_8)
 
-        application { module(AppConfig(adminDist = externalAdminDir.absolutePath)) }
+        application { module(testConfig.copy(adminDist = externalAdminDir.absolutePath)) }
 
         val adminRes = client.get("/admin/")
         assertEquals(HttpStatusCode.OK, adminRes.status)
@@ -120,7 +122,7 @@ class ApplicationTest {
 
     @Test
     fun `login with wrong password returns 401`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = client.post("/internal/auth/login") {
             contentType(ContentType.Application.Json)
             setBody("""{"username":"admin","password":"wrong"}""")
@@ -130,7 +132,7 @@ class ApplicationTest {
 
     @Test
     fun `login with correct credentials returns 200`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = client.post("/internal/auth/login") {
             contentType(ContentType.Application.Json)
             setBody("""{"username":"admin","password":"password"}""")
@@ -140,7 +142,7 @@ class ApplicationTest {
 
     @Test
     fun `login with malformed json returns json error`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = client.post("/internal/auth/login") {
             contentType(ContentType.Application.Json)
             setBody("""{"username":123}""")
@@ -152,7 +154,7 @@ class ApplicationTest {
 
     @Test
     fun `protected endpoint without session returns 401`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         assertEquals(HttpStatusCode.Unauthorized, client.get("/internal/users").status)
         assertEquals(HttpStatusCode.Unauthorized, client.delete("/internal/users/nope").status)
         assertEquals(HttpStatusCode.Unauthorized, client.get("/internal/urls").status)
@@ -162,7 +164,7 @@ class ApplicationTest {
 
     @Test
     fun `logout clears session`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
         assertEquals(HttpStatusCode.OK, c.get("/internal/urls").status)
@@ -172,7 +174,7 @@ class ApplicationTest {
 
     @Test
     fun `list users returns user summaries`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         UserRepository.create("editor", AuthService.hashPassword("secret"))
 
         val c = jsonClient()
@@ -190,7 +192,7 @@ class ApplicationTest {
 
     @Test
     fun `delete user removes it from list`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val target = UserRepository.create("editor", AuthService.hashPassword("secret"))
 
         val c = jsonClient()
@@ -206,7 +208,7 @@ class ApplicationTest {
 
     @Test
     fun `delete current user clears session`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val admin = UserRepository.findByUsername("admin") ?: error("admin user not found")
 
         val c = jsonClient()
@@ -224,7 +226,7 @@ class ApplicationTest {
 
     @Test
     fun `hash endpoint returns bcrypt hash`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         val res = c.post("/internal/auth/hash") {
             contentType(ContentType.Application.Json)
@@ -241,7 +243,7 @@ class ApplicationTest {
 
     @Test
     fun `create and list URLs`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -263,7 +265,7 @@ class ApplicationTest {
 
     @Test
     fun `create URL with duplicate slug returns 409`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -281,7 +283,7 @@ class ApplicationTest {
 
     @Test
     fun `create URL with invalid scheme returns 400`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -294,7 +296,7 @@ class ApplicationTest {
 
     @Test
     fun `create URL with reserved slug returns 400`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -313,7 +315,7 @@ class ApplicationTest {
 
     @Test
     fun `update URL changes originalUrl`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -329,7 +331,7 @@ class ApplicationTest {
 
     @Test
     fun `update nonexistent URL returns 404`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -342,7 +344,7 @@ class ApplicationTest {
 
     @Test
     fun `delete URL removes it from list`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -353,7 +355,7 @@ class ApplicationTest {
 
     @Test
     fun `delete nonexistent URL returns 404`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -366,7 +368,7 @@ class ApplicationTest {
 
     @Test
     fun `search filters by slug`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -380,7 +382,7 @@ class ApplicationTest {
 
     @Test
     fun `search filters by original URL`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -398,7 +400,7 @@ class ApplicationTest {
 
     @Test
     fun `redirect returns 302 with Location header`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
         c.createUrl("https://example.com", "rdr")
@@ -411,7 +413,7 @@ class ApplicationTest {
 
     @Test
     fun `redirect with URL-encoded slug works`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
         c.createUrl("https://example.com", "日本語")
@@ -423,7 +425,7 @@ class ApplicationTest {
 
     @Test
     fun `redirect to nonexistent slug returns 404`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = rawClient().get("/doesnotexist")
         assertEquals(HttpStatusCode.NotFound, res.status)
         assertEquals(ContentType.Text.Html, res.contentType()?.withoutParameters())
@@ -432,7 +434,7 @@ class ApplicationTest {
 
     @Test
     fun `root returns 404 page`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val res = rawClient().get("/")
         assertEquals(HttpStatusCode.NotFound, res.status)
         assertEquals(ContentType.Text.Html, res.contentType()?.withoutParameters())
@@ -441,7 +443,7 @@ class ApplicationTest {
 
     @Test
     fun `redirect increments click count`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
         val created = c.createUrl("https://example.com", "clk")
@@ -459,7 +461,7 @@ class ApplicationTest {
 
     @Test
     fun `generate ALPHANUMERIC slug has correct length`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -475,7 +477,7 @@ class ApplicationTest {
 
     @Test
     fun `generate DIGITS slug contains only digits`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -490,7 +492,7 @@ class ApplicationTest {
 
     @Test
     fun `generate EMOJI slug has correct count`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -503,7 +505,7 @@ class ApplicationTest {
 
     @Test
     fun `generate with invalid type returns 400`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -516,7 +518,7 @@ class ApplicationTest {
 
     @Test
     fun `generate with out-of-range length returns 400`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
@@ -533,7 +535,7 @@ class ApplicationTest {
 
     @Test
     fun `analytics returns correct click stats`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
         val created = c.createUrl("https://example.com", "ana")
@@ -549,7 +551,7 @@ class ApplicationTest {
 
     @Test
     fun `analytics for nonexistent URL returns 404`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
         assertEquals(HttpStatusCode.NotFound, c.get("/internal/urls/no-such-id/analytics").status)
@@ -561,7 +563,7 @@ class ApplicationTest {
 
     @Test
     fun `pagination offset and limit work`() = testApplication {
-        application { module() }
+        application { module(testConfig) }
         val c = jsonClient()
         c.login()
 
