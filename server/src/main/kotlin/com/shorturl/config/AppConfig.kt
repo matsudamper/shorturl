@@ -16,7 +16,7 @@ private val DEV_SECRET = "shorturl-dev-secret-key-32bytes!!"
 data class AppConfig(
     val port: Int = System.getenv("PORT")?.toIntOrNull() ?: 8080,
     val host: String = System.getenv("HOST") ?: "0.0.0.0",
-    val dataDir: String = System.getenv("DATA_DIR") ?: "../.data/exodus",
+    val dataDir: String = System.getenv("DATA_DIR") ?: "../.data",
     val sessionSecret: String = System.getenv("SESSION_SECRET") ?: DEV_SECRET,
     val geoipMmdb: String = System.getenv("GEOIP_MMDB") ?: "./GeoLite2-Country.mmdb",
     val adminDist: String? = System.getenv("ADMIN_DIST")?.takeIf { it.isNotBlank() },
