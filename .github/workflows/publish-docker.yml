@@ -13,7 +13,6 @@ env:
 
 concurrency:
   group: publish-docker-${{ github.event.repository.default_branch }}
-  cancel-in-progress: true
 
 jobs:
   build:
