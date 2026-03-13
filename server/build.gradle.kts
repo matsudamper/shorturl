@@ -22,7 +22,7 @@ val serverBuildProfile = providers.gradleProperty("serverBuildProfile")
     .map(String::trim)
     .map(String::lowercase)
 
-val resolvedServerBuildProfile = serverBuildProfile.get()
+val resolvedServerBuildProfile get() = serverBuildProfile.get()
 val externalAdminDist = providers.environmentVariable("ADMIN_DIST")
     .orNull
     ?.trim()
