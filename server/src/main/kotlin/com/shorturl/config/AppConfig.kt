@@ -2,8 +2,6 @@ package com.shorturl.config
 
 import java.io.File
 
-private val DEV_SECRET = "shorturl-dev-secret-key-32bytes!!"
-
 /**
  * @param port バインドポート
  * @param host バインドホスト
@@ -17,12 +15,11 @@ data class AppConfig(
     val port: Int = System.getenv("PORT")?.toIntOrNull() ?: 8080,
     val host: String = System.getenv("HOST") ?: "0.0.0.0",
     val dataDir: String = System.getenv("DATA_DIR") ?: "../.data",
-    val sessionSecret: String = System.getenv("SESSION_SECRET") ?: DEV_SECRET,
+    val sessionSecret: String = System.getenv("SESSION_SECRET")!!,
     val geoipMmdb: String = System.getenv("GEOIP_MMDB") ?: "./dbip-country-lite.mmdb",
     val adminDist: String? = System.getenv("ADMIN_DIST")?.takeIf { it.isNotBlank() },
     val cookieSecure: Boolean = System.getenv("COOKIE_SECURE")?.toBooleanStrictOrNull() ?: false,
 ) {
-    val isDevSecret: Boolean get() = sessionSecret == DEV_SECRET
     val adminDistDir: File? get() = adminDist?.let(::File)
 
     fun printSummary() {
@@ -35,7 +32,7 @@ data class AppConfig(
         println("  GEOIP_MMDB    = $geoipMmdb")
         println("  ADMIN_DIST    = ${adminDist ?: "(embedded resources)"}")
         println("  COOKIE_SECURE = $cookieSecure")
-        println("  SESSION_SECRET= ${if (isDevSecret) "⚠ 開発用デフォルト値（本番では SESSION_SECRET 環境変数を設定してください）" else "設定済み"}")
+        println("  SESSION_SECRET= ***")
         println("=".repeat(50))
     }
 }

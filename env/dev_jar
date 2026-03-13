@@ -1,1 +1,2 @@
 DATA_DIR=.data
+SESSION_SECRET='shorturl-dev-secret-key-32bytes!!'
