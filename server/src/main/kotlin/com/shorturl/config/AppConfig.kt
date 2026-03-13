@@ -9,7 +9,7 @@ private val DEV_SECRET = "shorturl-dev-secret-key-32bytes!!"
  * @param host バインドホスト
  * @param dataDir SQLite データ配置先ディレクトリまたは DB ファイル
  * @param sessionSecret セッション署名キー（32文字以上推奨）
- * @param geoipMmdb MaxMind GeoLite2 Country mmdb パス
+ * @param geoipMmdb DB-IP Country Lite mmdb パス（CC BY 4.0）
  * @param adminDist 管理画面の外部配信ディレクトリ。指定されると埋め込みリソースより優先
  * @param cookieSecure セッション Cookie に Secure 属性を付与（HTTPS 本番環境向け）
  */
@@ -18,7 +18,7 @@ data class AppConfig(
     val host: String = System.getenv("HOST") ?: "0.0.0.0",
     val dataDir: String = System.getenv("DATA_DIR") ?: "../.data",
     val sessionSecret: String = System.getenv("SESSION_SECRET") ?: DEV_SECRET,
-    val geoipMmdb: String = System.getenv("GEOIP_MMDB") ?: "./GeoLite2-Country.mmdb",
+    val geoipMmdb: String = System.getenv("GEOIP_MMDB") ?: "./dbip-country-lite.mmdb",
     val adminDist: String? = System.getenv("ADMIN_DIST")?.takeIf { it.isNotBlank() },
     val cookieSecure: Boolean = System.getenv("COOKIE_SECURE")?.toBooleanStrictOrNull() ?: false,
 ) {

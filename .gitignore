@@ -4,3 +4,5 @@ build
 .idea
 .data
 .kotlin-home
+*.mmdb
+

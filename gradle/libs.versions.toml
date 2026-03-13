@@ -6,7 +6,7 @@ exposed = "1.0.0"
 sqlite-jdbc = "3.50.3.0"
 jbcrypt = "0.4"
 compose-multiplatform = "1.11.0-alpha03"
-geoip2 = "4.2.0"
+maxmind-db = "3.1.0"
 navigation3 = "1.1.0-alpha03"
 
 [plugins]
@@ -30,7 +30,7 @@ exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "e
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
 jbcrypt = { module = "org.mindrot:jbcrypt", version.ref = "jbcrypt" }
-maxmind-geoip2 = { module = "com.maxmind.geoip2:geoip2", version.ref = "geoip2" }
+maxmind-db = { module = "com.maxmind.db:maxmind-db", version.ref = "maxmind-db" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
