@@ -42,7 +42,7 @@ fun Route.redirectRoutes() {
             browser = parseBrowser(userAgent),
         )
 
-        call.respondRedirect(shortened.originalUrl, permanent = true)
+        call.respondRedirect(shortened.originalUrl, permanent = false)
     }
 
     get("{...}") {

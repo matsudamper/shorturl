@@ -397,7 +397,7 @@ class ApplicationTest {
     // ────────────────────────────────────────────
 
     @Test
-    fun `redirect returns 301 with Location header`() = testApplication {
+    fun `redirect returns 302 with Location header`() = testApplication {
         application { module() }
         val c = jsonClient()
         c.login()
@@ -405,7 +405,7 @@ class ApplicationTest {
 
         val raw = rawClient()
         val res = raw.get("/rdr")
-        assertEquals(HttpStatusCode.MovedPermanently, res.status)
+        assertEquals(HttpStatusCode.Found, res.status)
         assertEquals("https://example.com", res.headers[HttpHeaders.Location])
     }
 
@@ -418,7 +418,7 @@ class ApplicationTest {
 
         val encoded = java.net.URLEncoder.encode("日本語", "UTF-8")
         val res = rawClient().get("/$encoded")
-        assertEquals(HttpStatusCode.MovedPermanently, res.status)
+        assertEquals(HttpStatusCode.Found, res.status)
     }
 
     @Test
