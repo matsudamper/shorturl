@@ -30,7 +30,7 @@ fun main() {
     AppDatabase.init(config.dataDir)
     GeoIpService.init(config.geoipMmdb)
 
-    val server = embeddedServer(CIO, port = config.port, host = config.host) {
+    val server = embeddedServer(CIO, port = config.port, host = "0.0.0.0") {
         module(config)
     }
     Runtime.getRuntime().addShutdownHook(Thread {
@@ -68,6 +68,7 @@ fun Application.module(config: AppConfig = AppConfig()) {
             cookie.httpOnly = true
             cookie.secure = config.cookieSecure
             cookie.extensions["SameSite"] = "Strict"
+            cookie.domain = config.domain
             transform(
                 SessionTransportTransformerMessageAuthentication(
                     config.sessionSecret.toByteArray(Charsets.UTF_8)

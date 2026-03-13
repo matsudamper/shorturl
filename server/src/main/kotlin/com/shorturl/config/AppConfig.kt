@@ -4,7 +4,7 @@ import java.io.File
 
 /**
  * @param port バインドポート
- * @param host バインドホスト
+ * @param domain 実行ドメイン
  * @param dataDir SQLite データ配置先ディレクトリまたは DB ファイル
  * @param sessionSecret セッション署名キー（32文字以上推奨）
  * @param geoipMmdb DB-IP Country Lite mmdb パス（CC BY 4.0）
@@ -13,7 +13,7 @@ import java.io.File
  */
 data class AppConfig(
     val port: Int = System.getenv("PORT")?.toIntOrNull() ?: 8080,
-    val host: String = System.getenv("HOST") ?: "0.0.0.0",
+    val domain: String? = System.getenv("DOMAIN"),
     val dataDir: String = System.getenv("DATA_DIR") ?: "../.data",
     val sessionSecret: String = System.getenv("SESSION_SECRET")!!,
     val geoipMmdb: String = System.getenv("GEOIP_MMDB") ?: "./dbip-country-lite.mmdb",
@@ -27,7 +27,7 @@ data class AppConfig(
         println("ShortURL Server Configuration")
         println("=".repeat(50))
         println("  PORT          = $port")
-        println("  HOST          = $host")
+        println("  HOST          = $domain")
         println("  DATA_DIR      = $dataDir")
         println("  GEOIP_MMDB    = $geoipMmdb")
         println("  ADMIN_DIST    = ${adminDist ?: "(embedded resources)"}")
