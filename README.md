@@ -23,8 +23,7 @@
 ## 開発時の起動
 
 ```bash
-./gradlew :server:nativeRun -PserverBuildProfile=dev
-./gradlew :server:nativeRun -PserverBuildProfile=prod
+./gradlew :server:nativeRun -PserverBuildProfile=dev|prod
 ```
 
 環境変数は`AppConfig.kt`を参照
