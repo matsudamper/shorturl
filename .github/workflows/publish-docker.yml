@@ -23,10 +23,9 @@ jobs:
           - platform: linux/amd64
             runs-on: ubuntu-latest
             arch: amd64
-#            https://github.com/gradle/gradle/issues/28583 対応されたら考える
-#          - platform: linux/arm64
-#            runs-on: ubuntu-24.04-arm
-#            arch: arm64
+          - platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
+            arch: arm64
     runs-on: ${{ matrix.runs-on }}
     steps:
       - name: Checkout
