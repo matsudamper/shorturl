@@ -37,8 +37,8 @@ val skipEmbeddedAdminResourcesForLocalRun =
         requestedTaskNames.none { it in artifactTaskNames }
 
 val adminWebpackTaskName = when (resolvedServerBuildProfile) {
-    "prod" -> "wasmJsBrowserProductionWebpack"
-    "dev" -> "wasmJsBrowserDevelopmentWebpack"
+    "prod" -> "wasmJsBrowserDistribution"
+    "dev" -> "wasmJsBrowserDevelopmentExecutableDistribution"
     else -> throw GradleException(
         "Unsupported serverBuildProfile=$resolvedServerBuildProfile. Use -PserverBuildProfile=dev or -PserverBuildProfile=prod."
     )
