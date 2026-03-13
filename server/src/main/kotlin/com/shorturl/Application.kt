@@ -21,6 +21,10 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.server.sessions.serialization.*
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.instrumentation.ktor.v3_0.KtorServerTelemetry
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
+import io.opentelemetry.semconv.ServiceAttributes
 import java.io.File
 
 fun main() {
@@ -40,7 +44,22 @@ fun main() {
     server.start(wait = true)
 }
 
+fun getOpenTelemetry(serviceName: String): OpenTelemetry =
+    AutoConfiguredOpenTelemetrySdk.builder()
+        .addResourceCustomizer { oldResource, _ ->
+            oldResource.toBuilder()
+                .putAll(oldResource.attributes)
+                .put(ServiceAttributes.SERVICE_NAME, serviceName)
+                .build()
+        }
+        .build()
+        .openTelemetrySdk
+
 fun Application.module(config: AppConfig = AppConfig()) {
+    install(KtorServerTelemetry) {
+        setOpenTelemetry(getOpenTelemetry(serviceName = "shorturl"))
+    }
+
     install(ContentNegotiation) {
         json(ServerJson)
     }
