@@ -2,6 +2,12 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.Sync
 import org.gradle.jvm.tasks.Jar
+import java.nio.file.LinkOption
+import java.nio.file.Path
+import kotlin.io.path.createLinkPointingTo
+import kotlin.io.path.deleteExisting
+import kotlin.io.path.fileSize
+import kotlin.io.path.isRegularFile
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -89,6 +95,23 @@ val graalVmLauncher = javaToolchains.launcherFor {
     vendor = JvmVendorSpec.GRAAL_VM
 }
 
+// Workaround: https://github.com/gradle/gradle/issues/28583
+// Gradle のコピー処理で GraalVM JDK 内のシンボリックリンクが空ファイルに化ける問題を修正する。
+// 空ファイルになった native-image を削除し、実体へのハードリンクとして再作成する。
+fun fixSymlink(target: Path, expectedSrc: Path) {
+    if (!expectedSrc.isRegularFile(LinkOption.NOFOLLOW_LINKS)) {
+        logger.info("fixSymlink: expected is not regular, skip (expected: {})", expectedSrc)
+        return
+    }
+    if (!target.isRegularFile(LinkOption.NOFOLLOW_LINKS) || target.fileSize() > 0) {
+        logger.info("fixSymlink: target is not regular or the file size > 0, skip (target: {})", target)
+        return
+    }
+    logger.warn("fixSymlink: {} -> {}", target, expectedSrc)
+    target.deleteExisting()
+    target.createLinkPointingTo(expectedSrc)
+}
+
 graalvmNative {
     toolchainDetection.set(true)
     binaries.configureEach {
@@ -131,6 +154,16 @@ tasks.named<Jar>("jar") {
 
 tasks.named<ShadowJar>("shadowJar") {
     archiveFileName.set("${project.name}-$resolvedServerBuildProfile-all.jar")
+}
+
+// Workaround: https://github.com/gradle/gradle/issues/28583
+// nativeCompile / nativeTestCompile の前に壊れたシンボリックリンクを修復する
+tasks.matching { it.name == "nativeCompile" || it.name == "nativeTestCompile" }.configureEach {
+    doFirst {
+        val binPath = graalVmLauncher.get().executablePath.asFile.toPath().parent
+        val svmBinPath = binPath.resolve("../lib/svm/bin")
+        fixSymlink(binPath.resolve("native-image"), svmBinPath.resolve("native-image"))
+    }
 }
 
 dependencies {
