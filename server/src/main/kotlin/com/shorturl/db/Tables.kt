@@ -31,7 +31,6 @@ object AccessLogsTable : Table("access_logs") {
     val ipAddress = text("ip_address")
     val userAgent = text("user_agent")
     val referer = text("referer").nullable()
-    val country = text("country").nullable()
     val deviceType = text("device_type")
     val browser = text("browser")
 
