@@ -5,7 +5,6 @@ import com.shorturl.db.AppDatabase
 import com.shorturl.model.UserSession
 import com.shorturl.routes.adminApiRoutes
 import com.shorturl.routes.redirectRoutes
-import com.shorturl.service.GeoIpService
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -32,14 +31,12 @@ fun main() {
     config.printSummary()
 
     AppDatabase.init(config.dataDir)
-    GeoIpService.init(config.geoipMmdb)
 
     val server = embeddedServer(CIO, port = config.port, host = "0.0.0.0") {
         module(config)
     }
     Runtime.getRuntime().addShutdownHook(Thread {
         AppDatabase.close()
-        GeoIpService.close()
     })
     server.start(wait = true)
 }

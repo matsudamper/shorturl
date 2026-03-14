@@ -179,7 +179,6 @@ dependencies {
     implementation(libs.exposed.jdbc)
     implementation(libs.sqlite.jdbc)
     implementation(libs.jbcrypt)
-    implementation(libs.maxmind.db)
     implementation(libs.opentelemetry.ktor)
     implementation(libs.opentelemetry.sdk.autoconfigure)
     implementation(libs.opentelemetry.exporter.otlp)
