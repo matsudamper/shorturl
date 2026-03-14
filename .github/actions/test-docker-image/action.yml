@@ -17,6 +17,7 @@ runs:
           -p 8080:8080 \
           -e DATA_DIR=/tmp/data \
           -e SESSION_SECRET=ci-test-secret-for-testing-only \
+          -e GEOIP_MMDB=/nonexistent \
           "${{ inputs.image-tag }}"
 
         echo "Waiting for server to be ready..."
