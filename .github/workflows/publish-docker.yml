@@ -78,42 +78,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Test admin endpoint
-        run: |
-          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
-
-          docker run -d \
-            --name shorturl-test \
-            -p 8080:8080 \
-            -e DATA_DIR=/tmp/data \
-            "$IMAGE_TAG"
-
-          echo "Waiting for server to be ready..."
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
-              echo "Server is ready"
-              break
-            fi
-            if [ "$i" = "30" ]; then
-              echo "Timed out waiting for server"
-              docker logs shorturl-test
-              docker rm -f shorturl-test || true
-              exit 1
-            fi
-            sleep 1
-          done
-
-          echo "Testing admin/ endpoint..."
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/admin/)
-          echo "admin/ responded with HTTP $HTTP_STATUS"
-          if [ "$HTTP_STATUS" = "000" ]; then
-            echo "ERROR: No response from admin/"
-            docker logs shorturl-test
-            docker rm -f shorturl-test || true
-            exit 1
-          fi
-          echo "admin/ endpoint test passed"
-
-          docker rm -f shorturl-test
+        uses: ./.github/actions/test-docker-image
+        with:
+          image-tag: ${{ steps.meta.outputs.tags }}
 
       - name: Push platform image
         run: |
