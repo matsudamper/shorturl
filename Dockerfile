@@ -13,7 +13,7 @@ LABEL io.shorturl.geoip.attribution="IP geolocation data by DB-IP.com (https://d
 
 WORKDIR /app
 
-COPY server/build/native/nativeCompile/shorturl-prod /app/shorturl
+COPY server/build/native/nativeCompile/shorturl /app/shorturl
 
 ENV HOST=0.0.0.0
 ENV PORT=8080

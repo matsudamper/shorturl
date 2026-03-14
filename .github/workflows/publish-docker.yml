@@ -43,7 +43,9 @@ jobs:
           cache: 'gradle'
 
       - name: Build GraalVM native image
-        run: ./gradlew :server:nativeCompile -PserverBuildProfile=prod
+        run: |
+          ./gradlew :server:nativeCompile -PserverBuildProfile=prod
+          mv server/build/native/nativeCompile/shorturl-prod* server/build/native/nativeCompile/shorturl
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -63,18 +65,31 @@ jobs:
           tags: |
             type=raw,value=${{ github.sha }}-${{ matrix.arch }}
 
-      - name: Build and push platform image
+      - name: Build platform image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           pull: true
-          push: true
+          load: true
+          push: false
           platforms: ${{ matrix.platform }}
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Test admin endpoint
+        uses: ./.github/actions/test-docker-image
+        with:
+          image-tag: ${{ steps.meta.outputs.tags }}
+
+      - name: Push platform image
+        run: |
+          TAGS="${{ steps.meta.outputs.tags }}"
+          for tag in $TAGS; do
+            docker push "$tag"
+          done
 
   push-manifest:
     needs: build
