@@ -16,6 +16,7 @@ runs:
           --name shorturl-test \
           -p 8080:8080 \
           -e DATA_DIR=/tmp/data \
+          -e SESSION_SECRET=ci-test-secret-for-testing-only \
           "${{ inputs.image-tag }}"
 
         echo "Waiting for server to be ready..."
