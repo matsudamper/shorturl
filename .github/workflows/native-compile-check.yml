@@ -27,7 +27,7 @@ jobs:
       - name: Build GraalVM native image (dev)
         run: |
           ./gradlew nativeCompile -PserverBuildProfile=dev
-          mv server/build/native/nativeCompile/shorturl-dev* server/build/native/nativeCompile/shorturl-prod
+          mv server/build/native/nativeCompile/shorturl-dev* server/build/native/nativeCompile/shorturl
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

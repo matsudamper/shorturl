@@ -45,7 +45,7 @@ jobs:
       - name: Build GraalVM native image
         run: |
           ./gradlew :server:nativeCompile -PserverBuildProfile=prod
-          mv server/build/native/nativeCompile/shorturl-prod* server/build/native/nativeCompile/shorturl-prod
+          mv server/build/native/nativeCompile/shorturl-prod* server/build/native/nativeCompile/shorturl
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
