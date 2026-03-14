@@ -25,4 +25,4 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Build GraalVM native image (dev)
-        run: ./gradlew :server:nativeCompile
+        run: ./gradlew nativeCompile -PserverBuildProfile=dev
