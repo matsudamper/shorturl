@@ -72,11 +72,9 @@ fun UrlEditScreen(
             return@Column
         }
 
-        OutlinedTextField(
+        CopyableReadOnlyTextField(
             value = "/${currentUrl.slug}",
-            onValueChange = {},
-            label = { Text("スラッグ（変更不可）") },
-            readOnly = true,
+            label = "スラッグ（変更不可）",
             modifier = Modifier.fillMaxWidth(),
         )
 
