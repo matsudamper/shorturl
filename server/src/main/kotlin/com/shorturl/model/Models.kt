@@ -22,7 +22,6 @@ data class AccessLog(
     val ipAddress: String,
     val userAgent: String,
     val referer: String?,
-    val country: String?,
     val deviceType: String,
     val browser: String,
 )

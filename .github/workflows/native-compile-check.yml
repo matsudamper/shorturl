@@ -25,4 +25,23 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Build GraalVM native image (dev)
-        run: ./gradlew :server:nativeCompile
+        run: |
+          ./gradlew nativeCompile -PserverBuildProfile=dev
+          mv server/build/native/nativeCompile/shorturl-dev* server/build/native/nativeCompile/shorturl
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          push: false
+          tags: shorturl-test:pr
+
+      - name: Test admin endpoint
+        uses: ./.github/actions/test-docker-image
+        with:
+          image-tag: shorturl-test:pr

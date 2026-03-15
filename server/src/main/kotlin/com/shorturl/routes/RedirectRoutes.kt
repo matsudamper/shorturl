@@ -3,7 +3,6 @@ package com.shorturl.routes
 import com.shorturl.respondNotFoundPage
 import com.shorturl.repository.AccessLogRepository
 import com.shorturl.repository.UrlRepository
-import com.shorturl.service.GeoIpService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
@@ -37,7 +36,6 @@ fun Route.redirectRoutes() {
             ipAddress = call.request.origin.remoteAddress,
             userAgent = userAgent,
             referer = call.request.headers[HttpHeaders.Referrer],
-            country = GeoIpService.lookupCountry(call.request.origin.remoteAddress),
             deviceType = parseDeviceType(userAgent),
             browser = parseBrowser(userAgent),
         )

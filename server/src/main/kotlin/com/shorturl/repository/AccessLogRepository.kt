@@ -17,7 +17,6 @@ object AccessLogRepository {
         ipAddress: String,
         userAgent: String,
         referer: String?,
-        country: String?,
         deviceType: String,
         browser: String,
     ): Unit = AppDatabase.write {
@@ -28,7 +27,6 @@ object AccessLogRepository {
             it[AccessLogsTable.ipAddress] = ipAddress
             it[AccessLogsTable.userAgent] = userAgent
             it[AccessLogsTable.referer] = referer
-            it[AccessLogsTable.country] = country
             it[AccessLogsTable.deviceType] = deviceType
             it[AccessLogsTable.browser] = browser
         }
@@ -55,7 +53,6 @@ object AccessLogRepository {
         ipAddress = this[AccessLogsTable.ipAddress],
         userAgent = this[AccessLogsTable.userAgent],
         referer = this[AccessLogsTable.referer],
-        country = this[AccessLogsTable.country],
         deviceType = this[AccessLogsTable.deviceType],
         browser = this[AccessLogsTable.browser],
     )
