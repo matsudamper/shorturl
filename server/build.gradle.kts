@@ -22,18 +22,13 @@ val serverBuildProfile = providers.gradleProperty("serverBuildProfile")
     .map(String::trim)
     .map(String::lowercase)
 
-val externalAdminDist = providers.environmentVariable("ADMIN_DIST")
-    .orNull
-    ?.trim()
-    ?.takeIf { it.isNotEmpty() }
-
 val requestedTaskNames = gradle.startParameter.taskNames.map { it.substringAfterLast(':') }
 val runLikeTaskNames = setOf("run", "nativeRun", "runShadow", "runFatJar")
 val artifactTaskNames = setOf("jar", "shadowJar", "buildFatJar", "nativeCompile", "assemble", "build")
 val skipEmbeddedAdminResourcesForLocalRun =
-    externalAdminDist != null &&
-            requestedTaskNames.any { it in runLikeTaskNames } &&
-            requestedTaskNames.none { it in artifactTaskNames }
+    serverBuildProfile.get() == "" ||
+            (requestedTaskNames.any { it in runLikeTaskNames } &&
+                    requestedTaskNames.none { it in artifactTaskNames })
 
 val adminWebpackTask = provider {
     val adminWebpackTaskName = when (val profile = serverBuildProfile.get()) {
