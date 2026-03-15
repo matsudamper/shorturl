@@ -147,7 +147,20 @@ private fun Routing.registerExternalAdminResources(externalAdminDir: File) {
 
     val fontsDir = externalAdminDir.resolve("fonts")
     if (fontsDir.isDirectory) {
-        staticFiles("/fonts", fontsDir)
+        get("/fonts/{resourcePath...}") {
+            val relativePath = call.parameters.getAll("resourcePath").orEmpty().joinToString("/")
+            val normalizedPath = normalizeAdminRelativePath(relativePath)
+            if (normalizedPath.isNullOrBlank()) {
+                call.respond(HttpStatusCode.NotFound)
+                return@get
+            }
+            val file = fontsDir.resolve(normalizedPath)
+            if (file.isSafeChildOf(fontsDir) && file.isFile) {
+                call.respondExternalResource(file, normalizedPath)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
     }
 }
 
@@ -191,6 +204,7 @@ private suspend fun ApplicationCall.respondExternalAdminResource(
 }
 
 private suspend fun ApplicationCall.respondExternalResource(file: File, resourcePath: String) {
+    cacheControlForResourcePath(resourcePath)?.let { response.header(HttpHeaders.CacheControl, it) }
     respondBytes(file.readBytes(), contentTypeForResourcePath(resourcePath))
 }
 
@@ -207,6 +221,7 @@ internal suspend fun ApplicationCall.respondEmbeddedResource(
         }
 
     resourceStream.use { stream ->
+        cacheControlForResourcePath(normalizedPath)?.let { response.header(HttpHeaders.CacheControl, it) }
         respondBytes(stream.readBytes(), contentTypeForResourcePath(normalizedPath), status)
     }
 }
@@ -239,6 +254,15 @@ private fun File.isSafeChildOf(root: File): Boolean {
     val filePath = canonicalFile.toPath()
     return filePath.startsWith(rootPath)
 }
+
+private fun cacheControlForResourcePath(resourcePath: String): String? =
+    when (resourcePath.substringAfterLast('.', "")) {
+        "html" -> "no-cache"
+        "wasm", "js", "mjs", "css" -> "public, max-age=3600"
+        "ttf", "woff", "woff2" -> "public, max-age=2592000"
+        "map", "json" -> "no-store"
+        else -> null
+    }
 
 private fun contentTypeForResourcePath(resourcePath: String): ContentType =
     when (resourcePath.substringAfterLast('.', "")) {
