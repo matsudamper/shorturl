@@ -182,6 +182,7 @@ dependencies {
     implementation(libs.ktor.server.sessions)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.html.builder)
+    implementation(libs.ktor.server.caching.headers)
     implementation(libs.ktor.serialization.json)
     implementation(libs.logback.classic)
     implementation(libs.exposed.core)

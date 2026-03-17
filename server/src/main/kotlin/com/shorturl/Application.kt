@@ -12,6 +12,7 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.cachingheaders.*
 import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
@@ -25,6 +26,8 @@ import io.opentelemetry.instrumentation.ktor.v3_0.KtorServerTelemetry
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
 import io.opentelemetry.semconv.ServiceAttributes
 import java.io.File
+import java.time.ZonedDateTime
+import java.time.ZoneOffset
 
 fun main() {
     val config = AppConfig()
@@ -55,6 +58,24 @@ fun getOpenTelemetry(serviceName: String): OpenTelemetry =
 fun Application.module(config: AppConfig = AppConfig()) {
     install(KtorServerTelemetry) {
         setOpenTelemetry(getOpenTelemetry(serviceName = "shorturl"))
+    }
+
+    install(CachingHeaders) {
+        options { _, outgoingContent ->
+            when (outgoingContent.contentType?.withoutParameters()) {
+                ContentType.Text.Html ->
+                    CachingOptions(CacheControl.NoCache(null), ZonedDateTime.now(ZoneOffset.UTC))
+                ContentType.parse("application/wasm"),
+                ContentType.Application.JavaScript,
+                ContentType.Text.CSS ->
+                    CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 3600, visibility = CacheControl.Visibility.Public), ZonedDateTime.now(ZoneOffset.UTC).plusSeconds(3600))
+                ContentType.parse("font/ttf"),
+                ContentType.parse("font/woff"),
+                ContentType.parse("font/woff2") ->
+                    CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 2592000, visibility = CacheControl.Visibility.Public), ZonedDateTime.now(ZoneOffset.UTC).plusSeconds(2592000))
+                else -> null
+            }
+        }
     }
 
     install(ContentNegotiation) {
@@ -147,20 +168,7 @@ private fun Routing.registerExternalAdminResources(externalAdminDir: File) {
 
     val fontsDir = externalAdminDir.resolve("fonts")
     if (fontsDir.isDirectory) {
-        get("/fonts/{resourcePath...}") {
-            val relativePath = call.parameters.getAll("resourcePath").orEmpty().joinToString("/")
-            val normalizedPath = normalizeAdminRelativePath(relativePath)
-            if (normalizedPath.isNullOrBlank()) {
-                call.respond(HttpStatusCode.NotFound)
-                return@get
-            }
-            val file = fontsDir.resolve(normalizedPath)
-            if (file.isSafeChildOf(fontsDir) && file.isFile) {
-                call.respondExternalResource(file, normalizedPath)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
-        }
+        staticFiles("/fonts", fontsDir)
     }
 }
 
@@ -204,7 +212,6 @@ private suspend fun ApplicationCall.respondExternalAdminResource(
 }
 
 private suspend fun ApplicationCall.respondExternalResource(file: File, resourcePath: String) {
-    cacheControlForResourcePath(resourcePath)?.let { response.header(HttpHeaders.CacheControl, it) }
     respondBytes(file.readBytes(), contentTypeForResourcePath(resourcePath))
 }
 
@@ -221,7 +228,6 @@ internal suspend fun ApplicationCall.respondEmbeddedResource(
         }
 
     resourceStream.use { stream ->
-        cacheControlForResourcePath(normalizedPath)?.let { response.header(HttpHeaders.CacheControl, it) }
         respondBytes(stream.readBytes(), contentTypeForResourcePath(normalizedPath), status)
     }
 }
@@ -254,15 +260,6 @@ private fun File.isSafeChildOf(root: File): Boolean {
     val filePath = canonicalFile.toPath()
     return filePath.startsWith(rootPath)
 }
-
-private fun cacheControlForResourcePath(resourcePath: String): String? =
-    when (resourcePath.substringAfterLast('.', "")) {
-        "html" -> "no-cache"
-        "wasm", "js", "mjs", "css" -> "public, max-age=3600"
-        "ttf", "woff", "woff2" -> "public, max-age=2592000"
-        "map", "json" -> "no-store"
-        else -> null
-    }
 
 private fun contentTypeForResourcePath(resourcePath: String): ContentType =
     when (resourcePath.substringAfterLast('.', "")) {
