@@ -22,8 +22,13 @@ import kotlinx.browser.window
 import kotlinx.serialization.Serializable
 import kotlin.js.ExperimentalWasmJsInterop
 import org.w3c.dom.events.Event
-import ui.*
+import ui.analytics.AnalyticsScreen
 import ui.edit.UrlEditScreen
+import ui.hashgenerator.HashGeneratorScreen
+import ui.login.LoginScreen
+import ui.urlcreate.UrlCreateScreen
+import ui.urllist.UrlListScreen
+import ui.userlist.UserListScreen
 
 private const val adminBasePath = "/admin"
 private const val adminLoginPath = "/admin/"
