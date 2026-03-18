@@ -2,6 +2,7 @@ package ui.edit
 
 import api.ApiClient
 import api.isUnauthorizedApiError
+import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,7 @@ class UrlEditScreenViewModel(
         override fun onClickCopy() {
             val slug = viewModelStateFlow.value.url?.slug ?: return
             eventHandler.trySend {
-                it.sendToClipboard(slug)
+                it.sendToClipboard(window.location.host + "/" + slug)
             }
         }
 
