@@ -13,6 +13,10 @@ import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.cachingheaders.*
+import io.ktor.server.plugins.conditionalheaders.*
+import io.ktor.http.content.EntityTagVersion
+import io.ktor.http.content.OutgoingContent
+import java.security.MessageDigest
 import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
@@ -58,6 +62,27 @@ fun getOpenTelemetry(serviceName: String): OpenTelemetry =
 fun Application.module(config: AppConfig = AppConfig()) {
     install(KtorServerTelemetry) {
         setOpenTelemetry(getOpenTelemetry(serviceName = "shorturl"))
+    }
+
+    install(ConditionalHeaders) {
+        version { _, outgoingContent ->
+            val ct = outgoingContent.contentType?.withoutParameters() ?: return@version emptyList()
+            when (ct) {
+                ContentType.Text.Html,
+                ContentType.Application.JavaScript,
+                ContentType.Text.CSS,
+                ContentType.parse("application/wasm"),
+                ContentType.parse("font/ttf"),
+                ContentType.parse("font/woff"),
+                ContentType.parse("font/woff2") ->
+                    when (outgoingContent) {
+                        is OutgoingContent.ByteArrayContent ->
+                            listOf(EntityTagVersion(outgoingContent.bytes().md5hex()))
+                        else -> emptyList()
+                    }
+                else -> emptyList()
+            }
+        }
     }
 
     install(CachingHeaders) {
@@ -260,6 +285,9 @@ private fun File.isSafeChildOf(root: File): Boolean {
     val filePath = canonicalFile.toPath()
     return filePath.startsWith(rootPath)
 }
+
+private fun ByteArray.md5hex(): String =
+    MessageDigest.getInstance("MD5").digest(this).joinToString("") { "%02x".format(it) }
 
 private fun contentTypeForResourcePath(resourcePath: String): ContentType =
     when (resourcePath.substringAfterLast('.', "")) {
