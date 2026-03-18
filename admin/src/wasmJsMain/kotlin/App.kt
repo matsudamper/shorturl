@@ -23,6 +23,7 @@ import kotlinx.serialization.Serializable
 import kotlin.js.ExperimentalWasmJsInterop
 import org.w3c.dom.events.Event
 import ui.*
+import ui.edit.UrlEditScreen
 
 private const val adminBasePath = "/admin"
 private const val adminLoginPath = "/admin/"
@@ -245,7 +246,6 @@ fun App() {
                     UrlEditScreen(
                         urlId = key.urlId,
                         onBack = { pop() },
-                        onSaved = { pop() },
                         onUnauthorized = { resetTo(LoginRoute) },
                     )
                 }

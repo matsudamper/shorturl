@@ -31,14 +31,13 @@ import kotlinx.coroutines.launch
 fun CopyableReadOnlyTextField(
     value: String,
     label: String,
+    onClickCopy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val clipboardManager = LocalClipboard.current
     val interactionSource = remember { MutableInteractionSource() }
     val textStyle = MaterialTheme.typography.bodyLarge.copy(
         color = MaterialTheme.colorScheme.onSurface,
     )
-    val coroutineScope = rememberCoroutineScope()
 
     BasicTextField(
         value = value,
@@ -61,11 +60,7 @@ fun CopyableReadOnlyTextField(
                 trailingIcon = {
                     TextButton(
                         onClick = {
-                            coroutineScope.launch {
-                                clipboardManager.setClipEntry(
-                                    ClipEntry.withPlainText(value)
-                                )
-                            }
+                            onClickCopy()
                         },
                         contentPadding = PaddingValues(horizontal = 8.dp),
                     ) {
