@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import model.ShortenedUrl
 
-class UrlEditScreenViewModel(
+internal class UrlEditScreenViewModel(
     private val coroutineScope: CoroutineScope,
     private val urlId: String,
 ) {
