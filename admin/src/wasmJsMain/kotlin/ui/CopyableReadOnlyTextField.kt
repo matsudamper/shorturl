@@ -10,12 +10,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 /**
  * 読み取り専用の OutlinedTextField。右端（ボーダー内）にコピーボタンを持つ。
@@ -29,11 +33,12 @@ fun CopyableReadOnlyTextField(
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboardManager = LocalClipboard.current
     val interactionSource = remember { MutableInteractionSource() }
     val textStyle = MaterialTheme.typography.bodyLarge.copy(
         color = MaterialTheme.colorScheme.onSurface,
     )
+    val coroutineScope = rememberCoroutineScope()
 
     BasicTextField(
         value = value,
@@ -55,7 +60,13 @@ fun CopyableReadOnlyTextField(
                 label = { Text(label) },
                 trailingIcon = {
                     TextButton(
-                        onClick = { clipboardManager.setText(AnnotatedString(value)) },
+                        onClick = {
+                            coroutineScope.launch {
+                                clipboardManager.setClipEntry(
+                                    ClipEntry.withPlainText(value)
+                                )
+                            }
+                        },
                         contentPadding = PaddingValues(horizontal = 8.dp),
                     ) {
                         Text("コピー", style = MaterialTheme.typography.labelMedium)
