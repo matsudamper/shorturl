@@ -104,23 +104,6 @@ val graalVmLauncher = javaToolchains.launcherFor {
     vendor = JvmVendorSpec.GRAAL_VM
 }
 
-// Workaround: https://github.com/gradle/gradle/issues/28583
-// Gradle のコピー処理で GraalVM JDK 内のシンボリックリンクが空ファイルに化ける問題を修正する。
-// 空ファイルになった native-image を削除し、実体へのハードリンクとして再作成する。
-fun fixSymlink(target: Path, expectedSrc: Path) {
-    if (!expectedSrc.isRegularFile(LinkOption.NOFOLLOW_LINKS)) {
-        logger.info("fixSymlink: expected is not regular, skip (expected: {})", expectedSrc)
-        return
-    }
-    if (!target.isRegularFile(LinkOption.NOFOLLOW_LINKS) || target.fileSize() > 0) {
-        logger.info("fixSymlink: target is not regular or the file size > 0, skip (target: {})", target)
-        return
-    }
-    logger.warn("fixSymlink: {} -> {}", target, expectedSrc)
-    target.deleteExisting()
-    target.createLinkPointingTo(expectedSrc)
-}
-
 graalvmNative {
     toolchainDetection.set(true)
     binaries.configureEach {
@@ -173,6 +156,23 @@ tasks.matching { it.name == "nativeCompile" || it.name == "nativeTestCompile" }.
         val svmBinPath = binPath.resolve("../lib/svm/bin")
         fixSymlink(binPath.resolve("native-image"), svmBinPath.resolve("native-image"))
     }
+}
+
+// Workaround: https://github.com/gradle/gradle/issues/28583
+// Gradle のコピー処理で GraalVM JDK 内のシンボリックリンクが空ファイルに化ける問題を修正する。
+// 空ファイルになった native-image を削除し、実体へのハードリンクとして再作成する。
+fun fixSymlink(target: Path, expectedSrc: Path) {
+    if (!expectedSrc.isRegularFile(LinkOption.NOFOLLOW_LINKS)) {
+        logger.info("fixSymlink: expected is not regular, skip (expected: {})", expectedSrc)
+        return
+    }
+    if (!target.isRegularFile(LinkOption.NOFOLLOW_LINKS) || target.fileSize() > 0) {
+        logger.info("fixSymlink: target is not regular or the file size > 0, skip (target: {})", target)
+        return
+    }
+    logger.warn("fixSymlink: {} -> {}", target, expectedSrc)
+    target.deleteExisting()
+    target.createLinkPointingTo(expectedSrc)
 }
 
 dependencies {
