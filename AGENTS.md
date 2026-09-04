@@ -1,9 +1,30 @@
 # shorturl
 
-リポジトリ固有のルールは次を参照:
-- @docs/agent-repo.md
+## 構成
+- `server`: Ktor。リダイレクト・管理API・管理画面配信
+- `admin`: Compose Multiplatform (Wasm) 管理画面
+- `build-logic`: `createUser` 等
+
+## ビルド
+- 全体: `./gradlew build`
+- admin確認: `./gradlew :admin:wasmJsBrowserDevelopmentExecutableDistribution`
+- サーバ: `./gradlew :server:run`
+- Native: `./gradlew :server:nativeCompile`
+- ユーザー作成: `./gradlew :server:createUser -Pusername=<name> -PpasswordHash='<bcrypt-hash>'`
+
+## 前提
+- serverは Java 24 + GraalVM Toolchain
+- 管理画面既定配信: `admin/build/dist/wasmJs/developExecutable/`（`ADMIN_DIST` 未変更時）
 
 # 共通ルール
+
+## docs の参照
+リポジトリに存在する `docs/` 以下のエージェント向けドキュメントがあれば、必ず読んで従う。無いファイルは無視してよい。
+
+例:
+- `docs/agent-kotlin.md` — Kotlin 詳細スタイル
+- `docs/agent-compose.md` — Compose / UiState / Paparazzi
+- 既存の `docs/compose-guidelines.md` / `docs/coding_style.md` などリポ固有の詳細ガイド
 
 ## 言語
 - 応答・説明・コミットメッセージ・PR 文・レビュー返信は日本語
@@ -18,7 +39,7 @@
 - 書くなら What ではなく Why / コードで表せない制約
 - 既存コメントは削除しない。古くなったら更新可
 - どうしても必要そうなら勝手に書かずチャットで相談
-- 例外の緩さはリポジトリ固有ドキュメントに従う
+- 例外の緩さはリポジトリ固有セクションおよび docs に従う
 
 ## Kotlin / 一般（該当する場合）
 - Kotlin 公式コーディング規約に従う（リポに docs があればそちら優先）
@@ -47,7 +68,7 @@
 
 ## ビルド・検証（方針）
 - ビルド / format / lint / test 等のタスクは並列実行しない。逐次実行する
-- 編集後は確認してからコミット（具体コマンドはリポジトリ固有ドキュメント）
+- 編集後は確認してからコミット（具体コマンドはリポジトリ固有セクション）
 - 命令を無視して無理通ししない
 - 一回の指示で 5 回連続失敗したら経緯とやったことをまとめて提出して停止
 - ネットワーク起因のビルド失敗は深掘り不要。通らなかった旨を報告してよい
