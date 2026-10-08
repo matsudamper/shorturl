@@ -13,7 +13,7 @@
 - ユーザー作成: `./gradlew :server:createUser -Pusername=<name> -PpasswordHash='<bcrypt-hash>'`
 
 ## 前提
-- serverは Java 24 + GraalVM Toolchain
+- serverは Java 25 + GraalVM Toolchain
 - 管理画面既定配信: `admin/build/dist/wasmJs/developExecutable/`（`ADMIN_DIST` 未変更時）
 
 # 共通ルール
