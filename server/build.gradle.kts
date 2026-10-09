@@ -83,7 +83,7 @@ application {
     )
 }
 
-val graalVmLanguageVersion = JavaLanguageVersion.of(24)
+val graalVmLanguageVersion = JavaLanguageVersion.of(25)
 
 java {
     toolchain {
