@@ -5,7 +5,6 @@ import com.shorturl.db.AppDatabase
 import com.shorturl.model.*
 import com.shorturl.repository.UserRepository
 import com.shorturl.service.AuthService
-import com.shorturl.service.GeoIpService
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.cookies.*
@@ -27,7 +26,6 @@ class ApplicationTest {
     fun setup() {
         testConfig = AppConfig(sessionSecret = "test-secret-key-for-testing-only-32ch")
         AppDatabase.init(tempDir.absolutePath)
-        GeoIpService.init("nonexistent") // ファイルなし → no-op
         UserRepository.create("admin", AuthService.hashPassword("password"))
     }
 

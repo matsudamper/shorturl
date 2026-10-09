@@ -9,7 +9,7 @@
   - Compose Multiplatform (Wasm)
 
 ## 前提条件
-- GraalVM Java 24
+- GraalVM Java 25
 
 ## 通常ビルド
 
