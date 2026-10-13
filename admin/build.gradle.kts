@@ -32,15 +32,15 @@ kotlin {
     sourceSets {
         wasmJsMain {
             dependencies {
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                implementation(compose.material3)
-                implementation(compose.ui)
+                implementation(libs.compose.runtime)
+                implementation(libs.compose.foundation)
+                implementation(libs.compose.ui)
+                implementation(libs.compose.material3)
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.js)
                 implementation(libs.ktor.client.content.negotiation)
                 implementation(libs.ktor.serialization.json.mp)
-                implementation(libs.navigation3.ui)
+                implementation(libs.jetbrains.navigation3.ui)
             }
         }
     }
