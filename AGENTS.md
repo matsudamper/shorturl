@@ -6,7 +6,7 @@
 - `build-logic`: `createUser` 等
 
 ## ビルド
-- 全体: `./gradlew build`
+- 全体（テストを実行しないビルド）: `./gradlew assemble`
 - admin確認: `./gradlew :admin:wasmJsBrowserDevelopmentExecutableDistribution`
 - サーバ: `./gradlew :server:run`
 - Native: `./gradlew :server:nativeCompile`
