@@ -5,7 +5,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -63,25 +62,21 @@ private fun LoginContent(
     ) {
         Text("ShortURL 管理画面 ⚙\uFE0F", style = MaterialTheme.typography.headlineMedium)
 
-        OutlinedTextField(
-            value = state.username,
-            onValueChange = { callbacks.updateUsername(it) },
-            label = { Text("ユーザー名") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = { callbacks.updatePassword(it) },
-            label = { Text("パスワード") },
-            visualTransformation = PasswordVisualTransformation(),
-            singleLine = true,
+        LoginCredentialsFields(
+            username = state.username,
+            password = state.password,
+            onUsernameChange = { callbacks.updateUsername(it) },
+            onPasswordChange = { callbacks.updatePassword(it) },
+            onSubmit = { callbacks.login() },
+            usernameLabel = "ユーザー名",
+            passwordLabel = "パスワード",
+            submitEnabled = state.loginButtonEnabled,
             modifier = Modifier.fillMaxWidth(),
         )
 
         Button(
             onClick = { callbacks.login() },
-            enabled = !state.isLoading && state.username.isNotBlank() && state.password.isNotBlank(),
+            enabled = state.loginButtonEnabled,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(if (state.isLoading) "ログイン中..." else "ログイン")
