@@ -61,6 +61,9 @@ internal class LoginScreenViewModel(
                             username = viewModelState.username,
                             password = viewModelState.password,
                             isLoading = viewModelState.isLoading,
+                            loginButtonEnabled = !viewModelState.isLoading &&
+                                viewModelState.username.isNotBlank() &&
+                                viewModelState.password.isNotBlank(),
                         )
                     )
                 }
