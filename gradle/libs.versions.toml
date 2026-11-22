@@ -7,7 +7,7 @@ sqlite-jdbc = "3.50.3.0"
 jbcrypt = "0.4"
 compose-multiplatform = "1.11.0-alpha03"
 compose-material3 = "1.11.0-alpha03"
-navigation3 = "1.1.0-alpha03"
+navigation3 = "1.2.0"
 opentelemetry-instrumentation = "2.18.1-alpha"
 opentelemetry-sdk = "1.52.0"
 
